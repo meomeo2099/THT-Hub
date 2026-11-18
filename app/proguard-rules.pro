@@ -1,0 +1,2 @@
+-dontwarn android.car.**
+-keep class vn.tht.hub.** { *; }

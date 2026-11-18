@@ -1,0 +1,147 @@
+package vn.tht.hub
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import android.util.Log
+import vn.tht.hub.media.MediaWatcher
+import vn.tht.hub.media.NowPlaying
+import vn.tht.hub.overlay.MusicBar
+import vn.tht.hub.overlay.QuickPanel
+import vn.tht.hub.system.CallWatcher
+import vn.tht.hub.vehicle.CarPropertySource
+import vn.tht.hub.vehicle.EcarxCarSource
+import vn.tht.hub.vehicle.EcarxController
+import vn.tht.hub.vehicle.EcarxInfo
+import vn.tht.hub.vehicle.VehicleData
+
+/**
+ * Dịch vụ nền trung tâm (foreground): sở hữu kết nối xe, nhạc, cuộc gọi và các lớp nổi.
+ * Không phụ thuộc Activity nào còn sống — giống cách GUHub chạy bên cạnh launcher gốc.
+ */
+class HubService : Service() {
+
+    private val main = Handler(Looper.getMainLooper())
+    private lateinit var prefs: Prefs
+
+    lateinit var ecarx: EcarxCarSource; private set
+    lateinit var control: EcarxController; private set
+    private lateinit var car: CarPropertySource
+    lateinit var media: MediaWatcher; private set
+    private lateinit var calls: CallWatcher
+    private lateinit var automation: Automation
+
+    var vehicle: VehicleData? = null; private set
+    var info: EcarxInfo? = null; private set
+    var nowPlaying: NowPlaying? = null; private set
+
+    private var quickPanel: QuickPanel? = null
+    private var musicBar: MusicBar? = null
+
+    /** Ai đó (lớp nổi, màn Cài đặt) muốn vẽ lại khi dữ liệu đổi. */
+    private val listeners = LinkedHashSet<() -> Unit>()
+    fun addListener(l: () -> Unit) { listeners += l }
+    fun removeListener(l: () -> Unit) { listeners -= l }
+    private fun notifyChanged() = listeners.toList().forEach { runCatching(it) }
+
+    private val pollInfo = object : Runnable {
+        override fun run() {
+            refreshInfo()
+            main.postDelayed(this, if (quickPanel?.isOpen == true) 1000L else 3000L)
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        prefs = Prefs(this)
+        startForeground(NOTIF_ID, buildNotification())
+
+        val profile = (application as HubApp).profile
+        car = CarPropertySource(this, profile) { d ->
+            vehicle = d
+            automation.onVehicle(d)
+            notifyChanged()
+        }
+        ecarx = EcarxCarSource(this) { ready -> Log.i(TAG, "ECARX sẵn sàng: $ready"); if (ready) refreshInfo() }
+        ecarx.onChanged = { refreshInfo() }
+        control = EcarxController(ecarx, { vehicle?.speedKmh }, { vehicle?.gearText })
+        media = MediaWatcher(this) { np -> nowPlaying = np; notifyChanged() }
+        calls = CallWatcher(this)
+        automation = Automation(this, prefs)
+
+        car.start(); ecarx.start(); media.start(); calls.start()
+        main.post(pollInfo)
+        applyOverlays()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_APPLY) applyOverlays()
+        if (intent?.action == ACTION_TOGGLE_PANEL) quickPanel?.toggle()
+        return START_STICKY
+    }
+
+    /** Đọc trạng thái điều hoà/chế độ lái ngoài luồng giao diện. */
+    fun refreshInfo() {
+        if (!ecarx.connected) return
+        control.background({ ecarx.readInfo() }) { i -> info = i; notifyChanged() }
+    }
+
+    /** Bật/tắt lớp nổi theo Cài đặt (gọi lại sau khi người dùng đổi). */
+    fun applyOverlays() {
+        Permissions.grantSelf(this)
+        if (!Permissions.canOverlay(this)) { Log.w(TAG, "Chưa có quyền lớp nổi"); return }
+        if (prefs.quickPanel) { if (quickPanel == null) quickPanel = QuickPanel(this).also { it.show() } }
+        else { quickPanel?.hide(); quickPanel = null }
+        if (prefs.musicBar) { if (musicBar == null) musicBar = MusicBar(this).also { it.show() } }
+        else { musicBar?.hide(); musicBar = null }
+    }
+
+    override fun onDestroy() {
+        main.removeCallbacksAndMessages(null)
+        quickPanel?.hide(); musicBar?.hide()
+        runCatching { car.stop() }; runCatching { ecarx.stop() }
+        runCatching { media.stop() }; runCatching { calls.stop() }
+        control.shutdown()
+        instance = null
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun buildNotification(): Notification {
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, "THT Hub", NotificationManager.IMPORTANCE_MIN))
+        val open = PendingIntent.getActivity(
+            this, 0, Intent(this, SettingsActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
+        )
+        return Notification.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.ic_car)
+            .setContentTitle("THT Hub đang chạy")
+            .setContentIntent(open)
+            .setOngoing(true)
+            .build()
+    }
+
+    companion object {
+        private const val TAG = "THTHub"
+        private const val CHANNEL = "hub"
+        private const val NOTIF_ID = 7
+        const val ACTION_APPLY = "vn.tht.hub.APPLY"
+        const val ACTION_TOGGLE_PANEL = "vn.tht.hub.TOGGLE_PANEL"
+
+        @Volatile var instance: HubService? = null; private set
+
+        fun start(c: Context, action: String? = null) {
+            val i = Intent(c, HubService::class.java).setAction(action)
+            runCatching { c.startForegroundService(i) }.onFailure { Log.w(TAG, "Không khởi động được: ${it.message}") }
+        }
+    }
+}
