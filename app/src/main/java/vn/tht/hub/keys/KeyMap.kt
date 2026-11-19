@@ -58,7 +58,8 @@ fun keyLabel(code: Int): String = when (code) {
     KeyEvent.KEYCODE_ENDCALL -> "Kết thúc gọi"
     KeyEvent.KEYCODE_VOICE_ASSIST, 298 -> "Giọng nói"
     300 -> "Tắt tiếng (ECARX)"
-    304 -> "Trái (ECARX)"
+    301, 302, 303 -> "Phím ECARX"
+    304 -> "◀ Trái (ECARX)"
     KeyEvent.KEYCODE_HOME -> "Home"
     KeyEvent.KEYCODE_BACK -> "Quay lại"
     else -> KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_").let { if (it.all(Char::isDigit)) "Mã $code" else it }

@@ -14,11 +14,9 @@ import android.view.View
 import vn.tht.hub.overlay.Palette
 
 /**
- * Hình vô lăng Coolray 2025 vẽ bằng code: ba chấu, đáy phẳng.
- * Chấu trái = cụm 4 phím mũi tên (Lên/Xuống/Trái/Phải); chấu phải = âm lượng +/−, tắt tiếng, điện thoại,
- * nguồn âm thanh, giọng nói. Mỗi nút có biểu tượng thật; chạm để chọn.
- * Viền xanh = đã biết mã, nền xanh = đã gán chức năng, nút nháy trắng khi bấm nút thật trên xe.
- * Hệ toạ độ thiết kế 820×560, tự co theo view.
+ * Vô lăng Coolray 2025 vẽ theo ảnh xe thật: vành tròn, chấu dưới hình chữ V viền bạc, đệm giữa lớn,
+ * hai cụm nút bạc hai bên (xem [WheelButton]). Nút ga tự động bên trái vẽ mờ (xe xử lý, app không bắt được).
+ * Viền xanh = đã biết mã, nền xanh = đã gán chức năng, nháy trắng khi bấm nút thật. Hệ toạ độ 820×560.
  */
 class WheelView(c: Context, private val p: Palette, private val onSelect: (String) -> Unit) : View(c) {
 
@@ -29,32 +27,38 @@ class WheelView(c: Context, private val p: Palette, private val onSelect: (Strin
     private val rects = LinkedHashMap<WheelButton, RectF>()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textAlign = Paint.Align.CENTER; typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        textAlign = Paint.Align.CENTER; typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
     }
-    private val icons = WheelButton.values().associateWith { c.getDrawable(it.icon)!!.mutate() }
+    private val icons = WheelButton.values().filter { it.icon != 0 }.associateWith { c.getDrawable(it.icon)!!.mutate() }
 
     private val cx = 410f
-    private val cy = 270f
+    private val cy = 250f
 
     init {
-        // Cụm trái: chữ thập 4 mũi tên quanh tâm (cx-165, cy+40)
-        val dx = cx - 165f; val dy = cy + 40f; val w = 56f; val h = 50f; val o = 56f
-        fun at(b: WheelButton, x: Float, y: Float) { rects[b] = RectF(x - w / 2, y - h / 2, x + w / 2, y + h / 2) }
-        at(WheelButton.UP, dx, dy - o)
-        at(WheelButton.DOWN, dx, dy + o)
-        at(WheelButton.LEFT, dx - o - 4, dy)
-        at(WheelButton.RIGHT, dx + o + 4, dy)
-        // Cụm phải: lưới 2 cột × 3 hàng
-        val grid = listOf(
-            WheelButton.VOL_UP, WheelButton.VOICE,
-            WheelButton.VOL_DOWN, WheelButton.PHONE,
-            WheelButton.MUTE, WheelButton.SOURCE,
-        )
-        val gx = cx + 96f; val gy = cy - 44f; val bw = 70f; val bh = 50f; val g = 8f
-        grid.forEachIndexed { i, b ->
-            val x = gx + (i % 2) * (bw + g); val y = gy + (i / 2) * (bh + g)
-            rects[b] = RectF(x, y, x + bw, y + bh)
+        fun put(b: WheelButton, x: Float, y: Float, w: Float = 60f, h: Float = 44f) {
+            rects[b] = RectF(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
         }
+        // Cụm trái (tâm x ≈ cx-178)
+        val lx = cx - 178f
+        put(WheelButton.ASSIST, lx - 36, cy - 6)
+        put(WheelButton.LIM, lx + 34, cy - 22)
+        put(WheelButton.GAP_DOWN, lx - 70, cy + 46, 46f)
+        put(WheelButton.RES, lx, cy + 30, 64f, 34f)
+        put(WheelButton.SET, lx, cy + 66, 64f, 34f)
+        put(WheelButton.GAP_UP, lx + 70, cy + 46, 46f)
+        put(WheelButton.VOICE, lx - 58, cy + 108, 58f)
+        put(WheelButton.CALL, lx + 6, cy + 112, 58f)
+        put(WheelButton.HANG_UP, lx + 68, cy + 108, 52f)
+        // Cụm phải (tâm x ≈ cx+178)
+        val rx = cx + 178f
+        put(WheelButton.HOME, rx - 34, cy - 22)
+        put(WheelButton.MUTE, rx + 36, cy - 6)
+        put(WheelButton.PREV, rx - 72, cy + 46, 46f)
+        put(WheelButton.ROLL_UP, rx, cy + 30, 64f, 34f)
+        put(WheelButton.ROLL_DOWN, rx, cy + 66, 64f, 34f)
+        put(WheelButton.NEXT, rx + 72, cy + 46, 46f)
+        put(WheelButton.MODE, rx - 34, cy + 112, 76f)
+        put(WheelButton.VIEW, rx + 48, cy + 108, 62f)
     }
 
     fun flash(code: Int) {
@@ -69,38 +73,43 @@ class WheelView(c: Context, private val p: Palette, private val onSelect: (Strin
         cv.translate((width - 820 * s) / 2, (height - 560 * s) / 2)
         cv.scale(s, s)
 
-        val leather = if (p.dark) 0xFF2E3846.toInt() else 0xFF2A323D.toInt()
-        val trim = if (p.dark) 0xFF5A6778.toInt() else 0xFF8C97A6.toInt()
-        val spoke = if (p.dark) 0xFF3A4555.toInt() else 0xFF3A4350.toInt()
-        val btn = if (p.dark) 0xFF4A5668.toInt() else 0xFF56606E.toInt()
+        val leather = if (p.dark) 0xFF2B3340.toInt() else 0xFF262C35.toInt()
+        val silver = if (p.dark) 0xFF8E99A8.toInt() else 0xFFB9C2CD.toInt()
+        val pod = if (p.dark) 0xFF1E252F.toInt() else 0xFF1F252D.toInt()
+        val btn = if (p.dark) 0xFF323C4A.toInt() else 0xFF3A434F.toInt()
 
-        // Vành tròn, đáy phẳng
-        paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND
-        paint.strokeWidth = 50f; paint.color = leather
-        cv.drawPath(Path().apply {
-            arcTo(RectF(cx - 250, cy - 250, cx + 250, cy + 250), 118f, 304f, true)
-            lineTo(cx - 250 * 0.47f, cy + 250 * 0.88f)
-        }, paint)
-        paint.strokeWidth = 4f; paint.color = trim
-        cv.drawPath(Path().apply { arcTo(RectF(cx - 226, cy - 226, cx + 226, cy + 226), 200f, 140f, true) }, paint)
-
-        // Chấu
-        paint.style = Paint.Style.FILL; paint.color = spoke
-        cv.drawRoundRect(RectF(cx - 262, cy - 46, cx - 70, cy + 128), 44f, 44f, paint)
-        cv.drawRoundRect(RectF(cx + 70, cy - 60, cx + 262, cy + 130), 44f, 44f, paint)
-        cv.drawRoundRect(RectF(cx - 46, cy + 110, cx + 46, cy + 240), 30f, 30f, paint)
-        // Đệm giữa + logo trung tính
-        paint.color = leather
-        cv.drawRoundRect(RectF(cx - 104, cy - 86, cx + 104, cy + 128), 70f, 70f, paint)
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = 5f; paint.color = trim
-        cv.drawOval(RectF(cx - 44, cy - 2, cx + 44, cy + 50), paint)
-        paint.strokeWidth = 3f
-        cv.drawLine(cx - 30, cy + 24, cx + 30, cy + 24, paint)
-        // Nền tròn của cụm mũi tên
+        // Vành
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 54f; paint.color = leather
+        cv.drawCircle(cx, cy + 20, 250f, paint)
+        // Chấu dưới hình chữ V, viền bạc
         paint.style = Paint.Style.FILL; paint.color = leather
-        cv.drawCircle(cx - 165, cy + 40, 92f, paint)
-        paint.color = spoke
-        cv.drawCircle(cx - 165, cy + 40, 22f, paint)
+        val v = Path().apply {
+            moveTo(cx - 120, cy + 150); lineTo(cx + 120, cy + 150)
+            lineTo(cx + 92, cy + 262); lineTo(cx - 92, cy + 262); close()
+        }
+        cv.drawPath(v, paint)
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 6f; paint.color = silver
+        cv.drawPath(Path().apply { moveTo(cx - 116, cy + 152); lineTo(cx - 88, cy + 262); lineTo(cx + 88, cy + 262); lineTo(cx + 116, cy + 152) }, paint)
+
+        // Hai cụm nút: nền tối, viền bạc
+        fun podPath(sign: Float) = Path().apply {
+            val x0 = cx + sign * 100; val x1 = cx + sign * 262
+            moveTo(x0, cy - 60); lineTo(x1 - sign * 20, cy - 40)
+            quadTo(x1 + sign * 4, cy + 50, x1 - sign * 30, cy + 142)
+            lineTo(x0, cy + 142); close()
+        }
+        for (sign in listOf(-1f, 1f)) {
+            val pp = podPath(sign)
+            paint.style = Paint.Style.FILL; paint.color = pod; cv.drawPath(pp, paint)
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = 7f; paint.color = silver; cv.drawPath(pp, paint)
+        }
+        // Đệm túi khí + logo trung tính
+        paint.style = Paint.Style.FILL; paint.color = leather
+        cv.drawRoundRect(RectF(cx - 132, cy - 90, cx + 132, cy + 200), 110f, 110f, paint)
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 5f; paint.color = silver
+        cv.drawOval(RectF(cx - 56, cy + 10, cx + 56, cy + 70), paint)
+        paint.strokeWidth = 3f
+        cv.drawLine(cx, cy + 12, cx, cy + 68, paint); cv.drawLine(cx - 54, cy + 40, cx + 54, cy + 40, paint)
 
         for ((b, r) in rects) {
             val slot = slots.firstOrNull { it.id == b.name }
@@ -108,26 +117,33 @@ class WheelView(c: Context, private val p: Palette, private val onSelect: (Strin
             val flash = b.name == flashId
             paint.style = Paint.Style.FILL
             paint.color = when { flash -> 0xFFFFFFFF.toInt(); on -> p.blue; b.reserved -> 0xFF6B4FBF.toInt(); else -> btn }
-            cv.drawRoundRect(r, 14f, 14f, paint)
+            cv.drawRoundRect(r, 10f, 10f, paint)
             if (slot?.learned == true && !on && !b.reserved) {
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 3f; paint.color = p.blue
-                cv.drawRoundRect(r, 14f, 14f, paint)
+                cv.drawRoundRect(r, 10f, 10f, paint)
             }
             if (b.name == selected) {
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 4f; paint.color = 0xFFFFC94D.toInt()
-                cv.drawRoundRect(RectF(r.left - 7, r.top - 7, r.right + 7, r.bottom + 7), 18f, 18f, paint)
+                cv.drawRoundRect(RectF(r.left - 6, r.top - 6, r.right + 6, r.bottom + 6), 14f, 14f, paint)
             }
-            val d = icons.getValue(b)
-            val sz = 30
-            d.setBounds((r.centerX() - sz / 2).toInt(), (r.centerY() - sz / 2).toInt(),
-                (r.centerX() + sz / 2).toInt(), (r.centerY() + sz / 2).toInt())
-            d.colorFilter = PorterDuffColorFilter(if (flash) p.blue else 0xFFFFFFFF.toInt(), PorterDuff.Mode.SRC_IN)
-            d.draw(cv)
+            val fg = when { flash -> p.blue; b.vehicleOnly -> 0x80FFFFFF.toInt(); b.tint != 0 && !on -> b.tint; else -> 0xFFFFFFFF.toInt() }
+            val d = icons[b]
+            if (d != null) {
+                val sz = 26
+                d.setBounds((r.centerX() - sz / 2).toInt(), (r.centerY() - sz / 2).toInt(),
+                    (r.centerX() + sz / 2).toInt(), (r.centerY() + sz / 2).toInt())
+                d.colorFilter = PorterDuffColorFilter(fg, PorterDuff.Mode.SRC_IN)
+                if (b == WheelButton.HANG_UP) { cv.save(); cv.rotate(135f, r.centerX(), r.centerY()); d.draw(cv); cv.restore() } else d.draw(cv)
+            } else {
+                text.color = fg; text.textSize = if (b.text.length > 3) 17f else 20f
+                cv.drawText(b.text, r.centerX(), r.centerY() + 7, text)
+            }
         }
 
-        text.color = p.sub; text.textSize = 18f
-        cv.drawText("Cụm trái", cx - 165, cy + 168, text)
-        cv.drawText("Cụm phải", cx + 166, cy + 168, text)
+        text.color = p.sub; text.textSize = 17f; text.typeface = Typeface.DEFAULT
+        cv.drawText("Cụm trái · nút mờ do xe xử lý", cx - 178, cy - 84, text)
+        cv.drawText("Cụm phải", cx + 178, cy - 84, text)
+        text.typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         cv.restore()
     }
 
@@ -137,7 +153,7 @@ class WheelView(c: Context, private val p: Palette, private val onSelect: (Strin
         val s = minOf(width / 820f, height / 560f)
         val x = (e.x - (width - 820 * s) / 2) / s
         val y = (e.y - (height - 560 * s) / 2) / s
-        rects.entries.firstOrNull { (_, r) -> RectF(r.left - 6, r.top - 6, r.right + 6, r.bottom + 6).contains(x, y) }
+        rects.entries.firstOrNull { (_, r) -> RectF(r.left - 4, r.top - 4, r.right + 4, r.bottom + 4).contains(x, y) }
             ?.let { selected = it.key.name; onSelect(it.key.name) }
         return true
     }

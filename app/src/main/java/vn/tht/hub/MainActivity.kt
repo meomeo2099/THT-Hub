@@ -312,7 +312,7 @@ class MainActivity : Activity() {
 
     private fun wheel(): View {
         val slots = KeyMap.load(this)
-        var sel = slots.firstOrNull { it.active }?.id ?: vn.tht.hub.keys.WheelButton.LEFT.name
+        var sel = slots.firstOrNull { it.active }?.id ?: vn.tht.hub.keys.WheelButton.PREV.name
         val detail = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val live = Ui.text(this, "Bấm thử một nút trên vô lăng…", 17f, p.sub)
         val svc = Ui.text(this, "", 16f, p.sub)
@@ -351,8 +351,11 @@ class MainActivity : Activity() {
             detail.removeAllViews()
             detail.addView(LinearLayout(this).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                addView(Ui.icon(this@MainActivity, wb.icon, 0xFFFFFFFF.toInt(), 48).apply {
-                    background = Ui.round(if (wb.reserved) 0xFF6B4FBF.toInt() else p.blue, 12f); setPadding(10, 10, 10, 10)
+                val badgeBg = Ui.round(when { wb.reserved -> 0xFF6B4FBF.toInt(); wb.vehicleOnly -> p.line; else -> p.blue }, 12f)
+                addView(if (wb.icon != 0) Ui.icon(this@MainActivity, wb.icon, if (wb.tint != 0) wb.tint else 0xFFFFFFFF.toInt(), 48).apply {
+                    background = badgeBg; setPadding(10, 10, 10, 10)
+                } else Ui.text(this@MainActivity, wb.text, 16f, 0xFFFFFFFF.toInt(), bold = true).apply {
+                    background = badgeBg; gravity = Gravity.CENTER; layoutParams = Ui.lp(64, 48)
                 })
                 addView(LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.VERTICAL
@@ -361,9 +364,10 @@ class MainActivity : Activity() {
                         Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 4 })
                 }, Ui.lp(0, Ui.WRAP, 1f).apply { leftMargin = 16 })
             }, Ui.lp(Ui.MATCH, Ui.WRAP))
-            if (wb.reserved) {
-                detail.addView(Ui.text(this, "Nút này dành cho THT Voice nên THT Hub không gán.", 18f, p.sub),
-                    Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 18 })
+            if (wb.reserved || wb.vehicleOnly) {
+                detail.addView(Ui.text(this, if (wb.reserved) "Nút này dành cho THT Voice nên THT Hub không gán."
+                    else "Nút ga tự động / hỗ trợ lái: xe xử lý trực tiếp, không đi qua màn hình, nên app không bắt hay đổi được.",
+                    18f, p.sub).apply { maxLines = 3 }, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 18 })
                 return@render
             }
             detail.addView(Ui.text(this, "Mã phím: ${s.keyName}" + if (s.learned && s.code == wb.knownCode) " · đã thấy trên xe" else "",
