@@ -17,6 +17,11 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.Locale
+import vn.tht.hub.keys.KeyAction
+import vn.tht.hub.keys.KeyMap
+import vn.tht.hub.keys.KeyService
+import vn.tht.hub.keys.WheelView
+import vn.tht.hub.keys.keyLabel
 import vn.tht.hub.overlay.Controls
 import vn.tht.hub.overlay.Palette
 import vn.tht.hub.overlay.Ui
@@ -34,6 +39,7 @@ class MainActivity : Activity() {
     private enum class Page(val title: String, val icon: Int) {
         OVERVIEW("Tổng quan", R.drawable.ic_nav_overview),
         PANEL("Điều khiển nhanh", R.drawable.ic_nav_panel),
+        WHEEL("Nút vô lăng", R.drawable.ic_nav_wheel),
         START("Khi nổ máy", R.drawable.ic_nav_start),
         OVERLAYS("Lớp nổi", R.drawable.ic_nav_layers),
         MUSIC("Nhạc và cuộc gọi", R.drawable.ic_nav_music),
@@ -66,6 +72,8 @@ class MainActivity : Activity() {
     }
 
     override fun onPause() {
+        KeyService.learning = false
+        KeyService.listener = null
         HubService.instance?.removeListener(hubListener)
         main.removeCallbacksAndMessages(null)
         super.onPause()
@@ -132,10 +140,13 @@ class MainActivity : Activity() {
         buildNav()
         content.removeAllViews()
         pageRefresh = null
-        hero.visibility = if (pg == Page.PANEL || pg == Page.DIAG) View.GONE else View.VISIBLE
+        KeyService.learning = false
+        KeyService.listener = null
+        hero.visibility = if (pg == Page.PANEL || pg == Page.DIAG || pg == Page.WHEEL) View.GONE else View.VISIBLE
         val v = when (pg) {
             Page.OVERVIEW -> overview()
             Page.PANEL -> panel()
+            Page.WHEEL -> wheel()
             Page.START -> start()
             Page.OVERLAYS -> overlays()
             Page.MUSIC -> music()
@@ -297,6 +308,109 @@ class MainActivity : Activity() {
         return Ui.text(this, "Đang khởi động dịch vụ nền…", 20f, p.sub).apply { setPadding(40, 40, 0, 0) }
     }
 
+    // ---- Nút vô lăng ----
+
+    private fun wheel(): View {
+        val slots = KeyMap.load(this)
+        var sel = slots.firstOrNull { it.learned }?.id ?: "L1"
+        val detail = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val live = Ui.text(this, "Bấm thử một nút trên vô lăng…", 17f, p.sub)
+        val svc = Ui.text(this, "", 16f, p.sub)
+        var render: () -> Unit = {}
+        val wv = WheelView(this, p) { id -> sel = id; KeyService.learning = false; render() }
+
+        fun save() { KeyMap.save(this, slots); wv.slots = slots.toList() }
+        fun liveListener(): (Int) -> Unit = { c -> wv.flash(c); live.text = "Vừa bấm: " + keyLabel(c); live.setTextColor(p.sub) }
+
+        fun actionChoice(label: String, cur: KeyAction, curArg: String, set: (KeyAction, String) -> Unit): View {
+            val opts = KeyAction.values().toList()
+            val shown = if (cur == KeyAction.OPEN_APP && curArg.isNotBlank())
+                "Mở " + (runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(curArg, 0)) }.getOrNull() ?: curArg)
+            else cur.label
+            return LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                background = Ui.round(p.card2, 10f); setPadding(20, 0, 20, 0)
+                addView(Ui.text(this@MainActivity, label, 19f, p.text))
+                addView(Ui.text(this@MainActivity, "$shown  ›", 18f, p.sub).apply { gravity = Gravity.END },
+                    Ui.lp(0, Ui.WRAP, 1f).apply { leftMargin = 16 })
+                layoutParams = Ui.lp(Ui.MATCH, 62).apply { topMargin = 10 }
+                setOnClickListener {
+                    AlertDialog.Builder(this@MainActivity, dialogTheme()).setTitle(label)
+                        .setItems(opts.map { it.label }.toTypedArray()) { _, i ->
+                            val a = opts[i]
+                            if (a == KeyAction.OPEN_APP) pickApp { pkg -> set(a, pkg) } else set(a, "")
+                        }.show()
+                }
+            }
+        }
+
+        render = {
+            wv.slots = slots.toList(); wv.selected = sel
+            val s = slots.first { it.id == sel }
+            detail.removeAllViews()
+            detail.addView(Ui.text(this, "Nút ${s.id}", 26f, p.text, bold = true))
+            detail.addView(Ui.text(this, "Mã phím: ${s.keyName}", 17f, p.sub), Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 6 })
+            detail.addView(primary(if (s.learned) "Học lại mã phím" else "Học mã phím") {
+                KeyService.learning = true
+                live.text = "Bấm nút ${s.id} trên vô lăng ngay bây giờ…"; live.setTextColor(p.blue)
+                KeyService.listener = { code ->
+                    if (code != android.view.KeyEvent.KEYCODE_BACK && code != android.view.KeyEvent.KEYCODE_HOME) {
+                        slots.forEach { o -> if (o.id != s.id && o.code == code) o.code = -1 }   // một mã chỉ thuộc một nút
+                        s.code = code
+                        KeyService.learning = false
+                        KeyService.listener = liveListener()
+                        save()
+                        render()
+                        live.text = "Đã học: ${keyLabel(code)}"; live.setTextColor(p.green)
+                    }
+                }
+            }.apply { layoutParams = Ui.lp(Ui.MATCH, 60).apply { topMargin = 18 } })
+            if (s.learned) {
+                detail.addView(actionChoice("Khi nhấn", s.press, s.pressArg) { a, arg -> s.press = a; s.pressArg = arg; save(); render() })
+                detail.addView(actionChoice("Khi giữ", s.hold, s.holdArg) { a, arg -> s.hold = a; s.holdArg = arg; save(); render() })
+                detail.addView(secondary("Xoá gán nút này") {
+                    s.code = -1; s.press = KeyAction.PASS; s.hold = KeyAction.PASS; s.pressArg = ""; s.holdArg = ""
+                    save(); render()
+                }.apply { layoutParams = Ui.lp(Ui.MATCH, 60).apply { topMargin = 10 } })
+            }
+            detail.addView(Ui.text(this, "Giữ = bấm lâu hơn 0,6 giây. Nút chưa gán vẫn giữ chức năng gốc của xe. " +
+                "Nút giọng nói để cho THT Voice.", 15f, p.sub).apply { maxLines = 3 },
+                Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 16 })
+        }
+
+        val right = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(0, 30, 30, 0)
+            addView(svc)
+            addView(live, Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 6; bottomMargin = 14 })
+            addView(detail)
+        }
+        val row = LinearLayout(this)
+        row.addView(wv, Ui.lp(820, 560).apply { topMargin = 30 })
+        row.addView(right, Ui.lp(0, Ui.WRAP, 1f).apply { leftMargin = 20 })
+
+        KeyService.listener = liveListener()
+        pageRefresh = {
+            val on = KeyService.enabled(this) && KeyService.instance != null
+            svc.text = if (on) "●  Dịch vụ nút vô lăng đang chạy" else "●  Dịch vụ nút vô lăng chưa chạy – đang tự bật…"
+            svc.setTextColor(if (on) p.green else p.red)
+            if (!on) KeyService.enable(this)
+        }
+        render()
+        return row
+    }
+
+    private fun dialogTheme() = if (p.dark) android.R.style.Theme_DeviceDefault_Dialog_Alert
+        else android.R.style.Theme_DeviceDefault_Light_Dialog_Alert
+
+    private fun pickApp(done: (String) -> Unit) {
+        val pm = packageManager
+        val apps = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .distinctBy { it.first }.filter { it.first != packageName }.sortedBy { it.second.lowercase() }
+        AlertDialog.Builder(this, dialogTheme()).setTitle("Chọn app")
+            .setItems(apps.map { it.second }.toTypedArray()) { _, i -> done(apps[i].first) }.show()
+    }
+
     // ---- Khi nổ máy ----
 
     private fun start(): View {
@@ -320,8 +434,35 @@ class MainActivity : Activity() {
             choice("Mở app", listOf("" to "Không mở") + apps, prefs.autoLaunchPkg) { prefs.autoLaunchPkg = it },
             choice("Phát nhạc", listOf(false to "Tắt", true to "Bật"), prefs.autoPlayMusic) { prefs.autoPlayMusic = it },
         ), Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 10 })
+
+        cap(col, "Khung giờ")
+        val hours = listOf(-1 to "Cả ngày") + (0..23).map { it to "%02d:00".format(it) }
+        col.addView(Ui.row(this,
+            choice("Từ", hours, prefs.autoFromHour) { prefs.autoFromHour = it },
+            choice("Đến", hours, prefs.autoToHour) { prefs.autoToHour = it },
+        ))
+
+        val rule = Ui.text(this, "", 17f, p.blue).apply { maxLines = 2 }
+        fun refreshRule() { rule.text = HubService.instance?.automation?.climateRule(HubService.instance?.vehicle?.outsideTempC) ?: "" }
+        val degrees = (10..40).map { it to "$it °C" }
+        cap(col, "Theo nhiệt độ ngoài trời")
+        col.addView(rule, Ui.lp(Ui.WRAP, Ui.WRAP).apply { bottomMargin = 12 })
+        toggle(col, "Trời nóng", "Bật A/C và đặt nhiệt độ riêng khi ngoài trời nóng", prefs.hotOn) { prefs.hotOn = it; refreshRule() }
+        col.addView(Ui.row(this,
+            choice("Khi từ", degrees, prefs.hotAbove) { prefs.hotAbove = it; refreshRule() },
+            choice("Đặt", temps.drop(1), prefs.hotTemp) { prefs.hotTemp = it; refreshRule() },
+        ))
+        toggle(col, "Lấy gió trong khi nóng", "Mát nhanh hơn", prefs.hotRecirc) { prefs.hotRecirc = it; refreshRule() }
+        toggle(col, "Trời lạnh", "Đặt nhiệt độ ấm hơn khi ngoài trời lạnh", prefs.coldOn) { prefs.coldOn = it; refreshRule() }
+        col.addView(Ui.row(this,
+            choice("Khi dưới", degrees, prefs.coldBelow) { prefs.coldBelow = it; refreshRule() },
+            choice("Đặt", temps.drop(1), prefs.coldTemp) { prefs.coldTemp = it; refreshRule() },
+        ))
+        toggle(col, "Sấy kính trước khi lạnh", "Chống mờ kính", prefs.coldDefrost) { prefs.coldDefrost = it; refreshRule() }
+
         col.addView(primary("Chạy thử ngay") { HubService.start(this, HubService.ACTION_RUN_START) },
             Ui.lp(720, 60).apply { topMargin = 18 })
+        pageRefresh = { refreshRule() }
         return sv
     }
 

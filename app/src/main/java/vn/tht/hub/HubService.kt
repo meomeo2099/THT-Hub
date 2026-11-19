@@ -36,7 +36,7 @@ class HubService : Service() {
     private lateinit var car: CarPropertySource
     lateinit var media: MediaWatcher; private set
     private lateinit var calls: CallWatcher
-    private lateinit var automation: Automation
+    lateinit var automation: Automation; private set
 
     var vehicle: VehicleData? = null; private set
     var info: EcarxInfo? = null; private set
@@ -87,7 +87,7 @@ class HubService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_APPLY) applyOverlays()
         if (intent?.action == ACTION_TOGGLE_PANEL) quickPanel?.toggle()
-        if (intent?.action == ACTION_RUN_START) automation.runStartScenario()
+        if (intent?.action == ACTION_RUN_START) automation.runStartScenario(force = true)
         if (intent?.action == ACTION_RESTYLE) { quickPanel?.hide(); quickPanel = null; musicBar?.hide(); musicBar = null; applyOverlays() }
         return START_STICKY
     }

@@ -46,6 +46,20 @@ class Prefs(context: Context) {
     /** Tự đóng hết kính khi xe chạy quá tốc độ này (0 = tắt). */
     var autoCloseWindowsKmh: Int get() = sp.getInt("auto_close_win", 0); set(v) = put("auto_close_win", v)
 
+    /** Chỉ chạy kịch bản trong khung giờ [autoFromHour, autoToHour); -1 = cả ngày. Qua nửa đêm được (22 → 6). */
+    var autoFromHour: Int get() = sp.getInt("auto_from_h", -1); set(v) = put("auto_from_h", v)
+    var autoToHour: Int get() = sp.getInt("auto_to_h", -1); set(v) = put("auto_to_h", v)
+
+    // Theo nhiệt độ ngoài trời (ghi đè nhiệt độ chung khi khớp)
+    var hotOn: Boolean get() = b("hot_on", false); set(v) = put("hot_on", v)
+    var hotAbove: Int get() = sp.getInt("hot_above", 30); set(v) = put("hot_above", v)
+    var hotTemp: Float get() = sp.getFloat("hot_temp", 22f); set(v) = put("hot_temp", v)
+    var hotRecirc: Boolean get() = b("hot_recirc", true); set(v) = put("hot_recirc", v)
+    var coldOn: Boolean get() = b("cold_on", false); set(v) = put("cold_on", v)
+    var coldBelow: Int get() = sp.getInt("cold_below", 18); set(v) = put("cold_below", v)
+    var coldTemp: Float get() = sp.getFloat("cold_temp", 26f); set(v) = put("cold_temp", v)
+    var coldDefrost: Boolean get() = b("cold_defrost", true); set(v) = put("cold_defrost", v)
+
     /** Dung tích bình (lít) người dùng nhập; 0 = lấy từ xe. Dùng trong CarPropertySource. */
     var tankLiters: Int get() = sp.getInt("tank_l", 0); set(v) = put("tank_l", v)
 }

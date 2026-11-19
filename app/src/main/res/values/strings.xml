@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">THT Hub</string>
+    <string name="key_service_desc">THT Hub: bắt nút vô lăng để chạy chức năng bạn gán. Không đọc nội dung màn hình.</string>
+    <string name="key_service_label">THT Hub – nút vô lăng</string>
 </resources>

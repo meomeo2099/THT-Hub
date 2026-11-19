@@ -19,6 +19,7 @@ object Permissions {
     fun grantSelf(c: Context) {
         grantOverlay(c)
         enableNotificationListener(c)
+        vn.tht.hub.keys.KeyService.enable(c)
     }
 
     fun canOverlay(c: Context) = Settings.canDrawOverlays(c)
