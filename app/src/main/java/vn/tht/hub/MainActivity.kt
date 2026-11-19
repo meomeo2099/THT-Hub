@@ -40,6 +40,7 @@ class MainActivity : Activity() {
         OVERVIEW("Tổng quan", R.drawable.ic_nav_overview),
         PANEL("Điều khiển nhanh", R.drawable.ic_nav_panel),
         WHEEL("Nút vô lăng", R.drawable.ic_nav_wheel),
+        AUDIO("Âm thanh", R.drawable.ic_speaker),
         START("Khi nổ máy", R.drawable.ic_nav_start),
         OVERLAYS("Lớp nổi", R.drawable.ic_nav_layers),
         MUSIC("Nhạc và cuộc gọi", R.drawable.ic_nav_music),
@@ -147,6 +148,7 @@ class MainActivity : Activity() {
             Page.OVERVIEW -> overview()
             Page.PANEL -> panel()
             Page.WHEEL -> wheel()
+            Page.AUDIO -> audioPage()
             Page.START -> start()
             Page.OVERLAYS -> overlays()
             Page.MUSIC -> music()
@@ -431,6 +433,62 @@ class MainActivity : Activity() {
             .distinctBy { it.first }.filter { it.first != packageName }.sortedBy { it.second.lowercase() }
         AlertDialog.Builder(this, dialogTheme()).setTitle("Chọn app")
             .setItems(apps.map { it.second }.toTypedArray()) { _, i -> done(apps[i].first) }.show()
+    }
+
+    // ---- Âm thanh ----
+
+    private fun audioPage(): View {
+        val (sv, col) = column()
+        val hub = HubService.instance ?: return waiting()
+        val ac = hub.audio
+        cap(col, "Âm lượng từng kênh", top = 0)
+        val bars = mutableListOf<Pair<vn.tht.hub.audio.AudioControl.Channel, android.widget.SeekBar>>()
+        for (ch in vn.tht.hub.audio.AudioControl.Channel.values()) {
+            val max = ac.max(ch)
+            if (max <= 0) continue
+            val value = Ui.text(this, "", 18f, p.sub).apply { gravity = Gravity.END }
+            val bar = android.widget.SeekBar(this).apply {
+                this.max = max; progress = ac.get(ch)
+                progressTintList = android.content.res.ColorStateList.valueOf(p.blue)
+                thumbTintList = android.content.res.ColorStateList.valueOf(p.blue)
+                setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(s: android.widget.SeekBar, v: Int, fromUser: Boolean) {
+                        value.text = "$v / $max"; if (fromUser) ac.set(ch, v)
+                    }
+                    override fun onStartTrackingTouch(s: android.widget.SeekBar) {}
+                    override fun onStopTrackingTouch(s: android.widget.SeekBar) {}
+                })
+            }
+            value.text = "${bar.progress} / $max"
+            col.addView(LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                background = Ui.round(p.card2, 10f); setPadding(20, 0, 20, 0)
+                addView(Ui.text(this@MainActivity, ch.label, 19f, p.text), Ui.lp(230, Ui.WRAP))
+                addView(bar, Ui.lp(0, Ui.WRAP, 1f))
+                addView(value, Ui.lp(90, Ui.WRAP))
+            }, Ui.lp(720, 64).apply { bottomMargin = 10 })
+            bars += ch to bar
+        }
+        col.addView(Ui.text(this, "Cuộc gọi Bluetooth đi qua module GOC riêng của xe, nên kênh Cuộc gọi ở đây có thể không đổi được âm lượng khi gọi.",
+            15f, p.sub).apply { maxLines = 2 }, Ui.lp(720, Ui.WRAP))
+
+        cap(col, "Khi bản đồ đọc chỉ đường")
+        toggle(col, "Tự giảm nhạc", "Hạ nhạc trong lúc bản đồ đang đọc, đọc xong trả lại mức cũ", prefs.duckOnNav) { prefs.duckOnNav = it }
+        col.addView(choice("Mức nhạc khi giảm", listOf(10, 20, 30, 40, 50, 60).map { it to "$it% tối đa" }, prefs.duckPercent, width = 720) { prefs.duckPercent = it })
+        val navNow = Ui.text(this, "", 16f, p.sub)
+        col.addView(navNow, Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 10 })
+
+        cap(col, "Khi đầu xe khởi động")
+        val musicMax = ac.max(vn.tht.hub.audio.AudioControl.Channel.MUSIC)
+        col.addView(choice("Âm lượng nhạc", listOf(-1 to "Giữ như lần trước") + (0..musicMax).map { it to "Mức $it" },
+            prefs.startupMusicVolume, width = 720) { prefs.startupMusicVolume = it })
+
+        pageRefresh = {
+            for ((ch, b) in bars) if (!b.isPressed) b.progress = ac.get(ch)
+            navNow.text = if (ac.navigationPlaying()) "●  Bản đồ đang đọc chỉ đường" else "Bản đồ đang im lặng"
+            navNow.setTextColor(if (ac.navigationPlaying()) p.blue else p.sub)
+        }
+        return sv
     }
 
     // ---- Khi nổ máy ----

@@ -37,6 +37,7 @@ class HubService : Service() {
     lateinit var media: MediaWatcher; private set
     private lateinit var calls: CallWatcher
     lateinit var automation: Automation; private set
+    lateinit var audio: vn.tht.hub.audio.AudioControl; private set
 
     var vehicle: VehicleData? = null; private set
     var info: EcarxInfo? = null; private set
@@ -78,6 +79,7 @@ class HubService : Service() {
         media = MediaWatcher(this) { np -> nowPlaying = np; notifyChanged() }
         calls = CallWatcher(this)
         automation = Automation(this, prefs)
+        audio = vn.tht.hub.audio.AudioControl(this).also { it.start() }
 
         car.start(); ecarx.start(); media.start(); calls.start()
         main.post(pollInfo)
@@ -112,7 +114,7 @@ class HubService : Service() {
         main.removeCallbacksAndMessages(null)
         quickPanel?.hide(); musicBar?.hide()
         runCatching { car.stop() }; runCatching { ecarx.stop() }
-        runCatching { media.stop() }; runCatching { calls.stop() }
+        runCatching { media.stop() }; runCatching { calls.stop() }; runCatching { audio.stop() }
         control.shutdown()
         instance = null
         super.onDestroy()

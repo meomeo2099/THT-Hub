@@ -31,6 +31,13 @@ class Prefs(context: Context) {
     // ---- Nhạc / cuộc gọi ----
     var callPauseMusic: Boolean get() = b("call_pause_music", true); set(v) = put("call_pause_music", v)
 
+    // ---- Âm thanh ----
+    var duckOnNav: Boolean get() = b("duck_nav", true); set(v) = put("duck_nav", v)
+    /** Mức nhạc (% tối đa) trong lúc bản đồ đọc chỉ đường. */
+    var duckPercent: Int get() = sp.getInt("duck_pct", 30); set(v) = put("duck_pct", v)
+    /** Âm lượng nhạc khi đầu xe khởi động; -1 = giữ nguyên. */
+    var startupMusicVolume: Int get() = sp.getInt("startup_vol", -1); set(v) = put("startup_vol", v)
+
     // ---- Tự động hoá khi nổ máy ----
     var autoEnabled: Boolean get() = b("auto_enabled", false); set(v) = put("auto_enabled", v)
     var autoClimateAuto: Boolean get() = b("auto_climate_auto", false); set(v) = put("auto_climate_auto", v)
