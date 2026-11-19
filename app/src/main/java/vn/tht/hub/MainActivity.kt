@@ -460,7 +460,11 @@ class MainActivity : Activity() {
         lateinit var renderRows: () -> Unit
         col.addView(primary("Bắt đầu (đã đóng hết cửa)") {
             step.text = "Đang đọc trạng thái cửa…"
-            hub.control.background({ dw.snapshot() }) { snap ->
+            hub.control.background({
+                // Đọc hai lần, bỏ tín hiệu tự dao động (điện áp, xăng…) để không nhận nhầm là cửa
+                val a = dw.snapshot(); Thread.sleep(1200); val b = dw.snapshot()
+                a.filter { (k, v) -> b[k] == v }
+            }) { snap ->
                 baseline = snap
                 step.text = if (snap.isNullOrEmpty()) "Không đọc được tín hiệu cửa nào từ xe (đã nối ECARX chưa?)."
                     else "Bước 2: mở một cửa, bấm Ghi nhận ở đúng dòng cửa đó, đóng lại rồi làm cửa tiếp theo. (${snap.size} tín hiệu)"
@@ -500,7 +504,7 @@ class MainActivity : Activity() {
         }
         renderRows()
         pageRefresh = {
-            hub.control.background({ dw.learned.map { l -> l?.let { hub.ecarx.getInt(it.probe.id, it.probe.zone) } } }) { vals ->
+            hub.control.background({ dw.learned.map { l -> l?.let { dw.read(it.probe) } } }) { vals ->
                 vals?.forEachIndexed { i, v ->
                     val l = dw.learned[i]
                     states[i]?.text = when { l == null -> ""; v == null -> "Không đọc được"; v != l.closedValue -> "●  Đang mở"; else -> "Đang đóng" }

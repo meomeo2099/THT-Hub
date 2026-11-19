@@ -41,7 +41,8 @@ class EcarxController(
     /** Đã nối được xe thì cho điều khiển; chữ ký platform chỉ còn là thông tin chẩn đoán. */
     val canWrite: Boolean get() = ecarx.connected
 
-    fun supported(id: Int, zone: Int = F.ZONE_ALL): Boolean = ecarx.isSupported(id, zone) == true
+    /** Như THT Voice: chỉ chặn khi xe trả lời rõ là KHÔNG hỗ trợ; chưa hỏi được thì vẫn gửi lệnh. */
+    fun supported(id: Int, zone: Int = F.ZONE_ALL): Boolean = ecarx.isSupported(id, zone) != false
 
     private fun run(done: (Result) -> Unit, block: () -> Result) {
         ioWrite.execute {

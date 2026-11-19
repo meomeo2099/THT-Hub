@@ -21,7 +21,7 @@ class DoorWindow(private val c: Context, private val ecarx: EcarxCarSource, priv
 
     data class Probe(val id: Int, val zone: Int) {
         val key get() = "$id:$zone"
-        val label get() = "${NAMES[id] ?: EcarxFunctions.hex(id)} vùng $zone"
+        val label get() = if (zone == MCU_ZONE) "MCU ${EcarxFunctions.hex(id)}" else "${NAMES[id] ?: EcarxFunctions.hex(id)} vùng $zone"
     }
 
     /** Cửa đã học: ứng viên + giá trị khi ĐÓNG (khác giá trị này = đang mở). */
@@ -43,8 +43,17 @@ class DoorWindow(private val c: Context, private val ecarx: EcarxCarSource, priv
             val v = runCatching { ecarx.getInt(id, z) }.getOrNull() ?: continue
             out[Probe(id, z).key] = v
         }
+        // Thuộc tính MCU thân xe 0x28700000..0x287002FF (nơi có kính, ắc quy, xăng…): cửa thường cũng nằm ở đây.
+        ecarx.awaitCarReady()
+        for (prop in MCU_FROM..MCU_TO) {
+            val v = runCatching { ecarx.getIntByProp(prop, 0) }.getOrNull() ?: continue
+            out[Probe(prop, MCU_ZONE).key] = v
+        }
         return out
     }
+
+    /** Đọc một ứng viên đã học (hàm ECARX theo vùng, hoặc thuộc tính MCU). */
+    fun read(p: Probe): Int? = if (p.zone == MCU_ZONE) ecarx.getIntByProp(p.id, 0) else ecarx.getInt(p.id, p.zone)
 
     /** So [closed] (đóng hết) với [now] (vừa mở cửa [door]); chọn ứng viên đổi giá trị, ưu tiên ứng viên chưa thuộc cửa khác. */
     fun learn(door: Int, closed: Map<String, Int>, now: Map<String, Int>): Learned? {
@@ -67,7 +76,7 @@ class DoorWindow(private val c: Context, private val ecarx: EcarxCarSource, priv
         override fun run() {
             if (!running) return
             if (prefs.doorDropEnabled && learned.any { it != null } && ecarx.connected) {
-                ctl.background({ learned.map { l -> l?.let { ecarx.getInt(it.probe.id, it.probe.zone) } } }) { values ->
+                ctl.background({ learned.map { l -> l?.let { read(it.probe) } } }) { values ->
                     values?.forEachIndexed { i, v -> onDoor(i, v?.let { it != learned[i]?.closedValue }) }
                 }
             }
@@ -123,6 +132,10 @@ class DoorWindow(private val c: Context, private val ecarx: EcarxCarSource, priv
         private val NAMES = mapOf(BCM_FUNC_DOOR_POS to "DOOR_POS", BCM_FUNC_DOOR_STATUS to "DOOR_STATUS", BCM_FUNC_DOOR to "DOOR")
         /** Vùng cửa thường gặp: VHAL (1,4,16,64), ECARX cửa/kính (1,2,4,8,16,32,256,512) và toàn xe. */
         val ZONES = intArrayOf(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, EcarxFunctions.ZONE_ALL)
+        const val MCU_FROM = 0x28700000
+        const val MCU_TO = 0x287002FF
+        /** Vùng giả đánh dấu ứng viên là thuộc tính MCU. */
+        const val MCU_ZONE = -2
         val DOOR_NAMES = listOf("Cửa lái", "Cửa phụ", "Cửa sau trái", "Cửa sau phải")
     }
 }

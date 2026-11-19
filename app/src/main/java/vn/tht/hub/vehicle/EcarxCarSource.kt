@@ -480,7 +480,7 @@ class EcarxCarSource(
         if (!connected) return null
         val f = EcarxFunctions
         fun <T> ifSupported(id: Int, zone: Int = f.ZONE_ALL, read: () -> T?): T? =
-            if (isSupported(id, zone) == true) read() else null
+            if (isSupported(id, zone) != false) read() else null
         val tempZone = if (isSupported(f.HVAC_TEMP, f.ZONE_ROW_1_LEFT) == true) f.ZONE_ROW_1_LEFT else f.ZONE_ALL
         return EcarxInfo(
             hvacOn = ifSupported(f.HVAC_POWER) { getInt(f.HVAC_POWER) }?.let { it == f.ON },
