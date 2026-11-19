@@ -31,6 +31,12 @@ class Prefs(context: Context) {
     // ---- Nhạc / cuộc gọi ----
     var callPauseMusic: Boolean get() = b("call_pause_music", true); set(v) = put("call_pause_music", v)
 
+    // ---- Cửa và kính ----
+    var doorDropEnabled: Boolean get() = b("door_drop", false); set(v) = put("door_drop", v)
+    var doorDropPercent: Int get() = sp.getInt("door_drop_pct", 15); set(v) = put("door_drop_pct", v)
+    /** Chỉ hai cửa trước. */
+    var doorDropFrontOnly: Boolean get() = b("door_drop_front", false); set(v) = put("door_drop_front", v)
+
     // ---- Âm thanh ----
     var duckOnNav: Boolean get() = b("duck_nav", true); set(v) = put("duck_nav", v)
     /** Mức nhạc (% tối đa) trong lúc bản đồ đọc chỉ đường. */

@@ -41,6 +41,7 @@ class MainActivity : Activity() {
         PANEL("Điều khiển nhanh", R.drawable.ic_nav_panel),
         WHEEL("Nút vô lăng", R.drawable.ic_nav_wheel),
         AUDIO("Âm thanh", R.drawable.ic_speaker),
+        DOORS("Cửa và kính", R.drawable.ic_windows),
         START("Khi nổ máy", R.drawable.ic_nav_start),
         OVERLAYS("Lớp nổi", R.drawable.ic_nav_layers),
         MUSIC("Nhạc và cuộc gọi", R.drawable.ic_nav_music),
@@ -132,7 +133,7 @@ class MainActivity : Activity() {
                 setOnClickListener { show(pg) }
             }
             item.setPadding(0, 0, 0, 0)
-            nav.addView(item, Ui.lp(Ui.MATCH, 70))
+            nav.addView(item, Ui.lp(Ui.MATCH, 62))
         }
     }
 
@@ -149,6 +150,7 @@ class MainActivity : Activity() {
             Page.PANEL -> panel()
             Page.WHEEL -> wheel()
             Page.AUDIO -> audioPage()
+            Page.DOORS -> doorPage()
             Page.START -> start()
             Page.OVERLAYS -> overlays()
             Page.MUSIC -> music()
@@ -433,6 +435,80 @@ class MainActivity : Activity() {
             .distinctBy { it.first }.filter { it.first != packageName }.sortedBy { it.second.lowercase() }
         AlertDialog.Builder(this, dialogTheme()).setTitle("Chọn app")
             .setItems(apps.map { it.second }.toTypedArray()) { _, i -> done(apps[i].first) }.show()
+    }
+
+    // ---- Cửa và kính ----
+
+    private fun doorPage(): View {
+        val hub = HubService.instance ?: return waiting()
+        val dw = hub.doors
+        val D = vn.tht.hub.vehicle.DoorWindow
+        val (sv, col) = column(900)
+        cap(col, "Mở cửa hạ kính, đóng cửa kéo kính lên", top = 0)
+        toggle(col, "Bật", "Mở cửa nào thì kính cửa đó hạ xuống một chút; đóng cửa thì kính kéo lên lại. Chỉ khi xe đứng yên.",
+            prefs.doorDropEnabled) { prefs.doorDropEnabled = it }
+        col.addView(Ui.Segmented(this, p, listOf(10 to "10%", 15 to "15%", 20 to "20%", 30 to "30%"), prefs.doorDropPercent) {
+            prefs.doorDropPercent = it
+        })
+        toggle(col, "Chỉ hai cửa trước", "Cửa sau không hạ kính", prefs.doorDropFrontOnly) { prefs.doorDropFrontOnly = it }
+
+        cap(col, "Học cửa (làm một lần, xe đang đỗ)")
+        val step = Ui.text(this, "Bước 1: đóng hết 4 cửa rồi bấm Bắt đầu.", 18f, p.blue).apply { maxLines = 2 }
+        col.addView(step, Ui.lp(Ui.MATCH, Ui.WRAP).apply { bottomMargin = 12 })
+        var baseline: Map<String, Int>? = null
+        val rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        lateinit var renderRows: () -> Unit
+        col.addView(primary("Bắt đầu (đã đóng hết cửa)") {
+            step.text = "Đang đọc trạng thái cửa…"
+            hub.control.background({ dw.snapshot() }) { snap ->
+                baseline = snap
+                step.text = if (snap.isNullOrEmpty()) "Không đọc được tín hiệu cửa nào từ xe (đã nối ECARX chưa?)."
+                    else "Bước 2: mở một cửa, bấm Ghi nhận ở đúng dòng cửa đó, đóng lại rồi làm cửa tiếp theo. (${snap.size} tín hiệu)"
+            }
+        }, Ui.lp(560, 60))
+        col.addView(rows, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 14 })
+        val states = arrayOfNulls<TextView>(4)
+        renderRows = {
+            rows.removeAllViews()
+            for (i in 0..3) {
+                val l = dw.learned[i]
+                val st = Ui.text(this, "", 16f, p.sub).also { states[i] = it }
+                rows.addView(LinearLayout(this).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = Ui.round(p.card2, 10f); setPadding(20, 10, 14, 10)
+                    addView(LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        addView(Ui.text(this@MainActivity, D.DOOR_NAMES[i], 20f, p.text))
+                        addView(Ui.text(this@MainActivity, l?.probe?.label?.let { "Đã học: $it" } ?: "Chưa học", 15f,
+                            if (l != null) p.green else p.sub))
+                        addView(st)
+                    }, Ui.lp(0, Ui.WRAP, 1f))
+                    addView(secondary("Ghi nhận") {
+                        val base = baseline
+                        if (base == null) { step.text = "Bấm Bắt đầu trước (khi đã đóng hết cửa)."; return@secondary }
+                        step.text = "Đang so sánh…"
+                        hub.control.background({ dw.snapshot() }) { now ->
+                            val r = now?.let { dw.learn(i, base, it) }
+                            step.text = if (r != null) "Đã học ${D.DOOR_NAMES[i]}: ${r.probe.label}. Đóng cửa rồi làm cửa tiếp theo."
+                                else "Không thấy tín hiệu nào đổi. Cửa ${D.DOOR_NAMES[i].lowercase()} đã mở chưa?"
+                            renderRows()
+                        }
+                    }, Ui.lp(Ui.WRAP, 56))
+                    addView(secondary("Xoá") { dw.forget(i); renderRows() }, Ui.lp(Ui.WRAP, 56).apply { leftMargin = 8 })
+                }, Ui.lp(Ui.MATCH, Ui.WRAP).apply { bottomMargin = 10 })
+            }
+        }
+        renderRows()
+        pageRefresh = {
+            hub.control.background({ dw.learned.map { l -> l?.let { hub.ecarx.getInt(it.probe.id, it.probe.zone) } } }) { vals ->
+                vals?.forEachIndexed { i, v ->
+                    val l = dw.learned[i]
+                    states[i]?.text = when { l == null -> ""; v == null -> "Không đọc được"; v != l.closedValue -> "●  Đang mở"; else -> "Đang đóng" }
+                    states[i]?.setTextColor(if (l != null && v != null && v != l.closedValue) p.blue else p.sub)
+                }
+            }
+        }
+        return sv
     }
 
     // ---- Âm thanh ----
