@@ -15,13 +15,16 @@ class Prefs(context: Context) {
         }
     }.apply()
 
+    /** Giao diện: 0 theo xe (ngày/đêm hệ thống), 1 sáng, 2 tối. */
+    var theme: Int get() = sp.getInt("theme", 0); set(v) = put("theme", v)
+
     // ---- Lớp nổi ----
     var quickPanel: Boolean get() = b("quick_panel", true); set(v) = put("quick_panel", v)
     var musicBar: Boolean get() = b("music_bar", true); set(v) = put("music_bar", v)
     /** Ẩn thanh nhạc khi không có gì phát. */
     var musicBarAutoHide: Boolean get() = b("music_autohide", true); set(v) = put("music_autohide", v)
-    var musicX: Int get() = sp.getInt("music_x", 760); set(v) = put("music_x", v)
-    var musicY: Int get() = sp.getInt("music_y", 600); set(v) = put("music_y", v)
+    var musicX: Int get() = sp.getInt("music_x", 1310); set(v) = put("music_x", v)
+    var musicY: Int get() = sp.getInt("music_y", 590); set(v) = put("music_y", v)
     /** Vị trí ngang (px) của tay kéo bảng nhanh ở mép dưới. */
     var handleX: Int get() = sp.getInt("handle_x", 860); set(v) = put("handle_x", v)
 

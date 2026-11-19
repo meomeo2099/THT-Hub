@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>THT Hub · Mockup</title>
+<style>
+:root{
+  --bg:#DCE3EC; --bg2:#E8EDF3; --card:#F7F9FC; --card2:#FFFFFF; --line:#D3DBE6;
+  --text:#18202B; --sub:#6B7686; --blue:#1F6BF2; --blue-soft:#DCE7FB; --green:#22A55B; --red:#E5484D;
+  --nav-sel:#E6ECF5; --shadow:0 2px 10px rgba(30,50,90,.06);
+}
+.dark{
+  --bg:#141A22; --bg2:#1A212B; --card:#212A36; --card2:#273141; --line:#2E3949;
+  --text:#EEF2F8; --sub:#93A0B2; --blue:#4C8DFF; --blue-soft:#24375A; --nav-sel:#1E2938; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1920px;height:720px;overflow:hidden;font-family:"Segoe UI","Roboto",system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.screen{position:relative;width:1920px;height:720px;background:var(--bg);overflow:hidden}
+/* ảnh xe Coolray bên phải, mờ dần sang trái */
+.hero{position:absolute;right:0;top:50px;width:1120px;height:642px;background:url(coolray-day.webp) right/cover no-repeat;
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 38%);mask-image:linear-gradient(to right,transparent 0,#000 38%);opacity:.95}
+.dark .hero{background-image:url(coolray-night.webp);opacity:.55}
+/* thanh hệ thống gốc của xe (50 px trên) – vẽ mờ để thấy vùng chiếm */
+.sys{position:absolute;left:0;top:0;width:1920px;height:50px;display:flex;align-items:center;padding:0 36px;gap:28px;font-size:20px;color:var(--sub);z-index:5}
+.sys .r{margin-left:auto;display:flex;gap:30px;align-items:center}
+/* menu trái */
+.nav{position:absolute;left:0;top:70px;width:330px;z-index:3}
+.nav a{display:flex;align-items:center;gap:20px;height:70px;padding-left:40px;font-size:24px;color:var(--text);text-decoration:none;border-left:5px solid transparent}
+.nav a.on{color:var(--blue);background:linear-gradient(90deg,var(--nav-sel),transparent);border-left-color:var(--blue)}
+.nav svg{width:28px;height:28px}
+.content{position:absolute;left:370px;top:70px;z-index:3}
+.cap{font-size:17px;color:var(--sub);margin:4px 0 12px;letter-spacing:.2px}
+.card{background:var(--card);border-radius:18px;box-shadow:var(--shadow)}
+.grid{display:grid;grid-template-columns:330px 330px;gap:16px}
+.big{grid-column:span 2;padding:24px 28px;display:flex;gap:30px;align-items:center;height:220px}
+.big .t{font-size:21px}
+.big .v{font-size:76px;font-weight:700;color:var(--blue);line-height:1.05}
+.big .v small{font-size:32px;margin-left:4px}
+.big .s{font-size:17px;color:var(--sub);margin-top:4px}
+.bar{height:8px;border-radius:4px;background:var(--line);margin:18px 0 10px;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:4px}
+.row2{display:flex;justify-content:space-between;font-size:16px;color:var(--sub)}
+.tank{width:96px;height:160px;border:4px solid var(--text);border-radius:18px;position:relative;overflow:hidden;flex:none}
+.tank::before{content:"";position:absolute;left:28px;top:-4px;width:32px;height:10px;background:var(--bg);}
+.tank i{position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(#5D9BFF,#1F6BF2)}
+.mini{display:flex;gap:18px;align-items:center;padding:18px 22px;height:118px}
+.ico{width:56px;height:56px;border-radius:14px;background:var(--blue-soft);display:grid;place-items:center;flex:none}
+.ico svg{width:30px;height:30px;color:var(--blue)}
+.mini .t{font-size:17px;color:var(--sub)}
+.mini .v{font-size:38px;font-weight:700}
+.mini .v small{font-size:18px;font-weight:600;color:var(--sub);margin-left:4px}
+.okbar{height:6px;border-radius:3px;background:var(--green);margin-top:6px;width:200px}
+.pill{position:absolute;right:30px;top:62px;z-index:4;background:var(--card2);border-radius:14px;padding:12px 18px;font-size:16px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green)}
+/* nút chọn nhóm và công tắc */
+.seg{display:flex;gap:8px}
+.seg b{width:150px;height:62px;display:grid;place-items:center;background:var(--card2);border-radius:10px;font-weight:500;font-size:19px}
+.seg b.on{background:var(--blue);color:#fff}
+.tg{display:flex;gap:18px;align-items:flex-start;margin:18px 0}
+.sw{width:46px;height:28px;border-radius:7px;background:#C9D1DC;position:relative;flex:none;margin-top:2px}
+.sw::after{content:"";position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:5px;background:#fff}
+.sw.on{background:var(--blue)}.sw.on::after{left:22px}
+.dark .sw{background:#3A4657}
+.tg .t{font-size:20px}.tg .s{font-size:15px;color:var(--sub);margin-top:3px}
+.btn{height:60px;border-radius:10px;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:19px;font-weight:500}
+.btn.w{background:var(--card2);color:var(--text)}
+.sel{height:62px;border-radius:10px;background:var(--card2);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:19px}
+.sel span{color:var(--sub)}
+/* bảng điều khiển nhanh (lớp nổi từ mép dưới) */
+.scrim{position:absolute;inset:0;background:rgba(15,25,40,.28);z-index:8}
+.sheet{position:absolute;left:160px;right:0;bottom:0;height:450px;z-index:9;border-radius:30px 30px 0 0;
+  background:rgba(240,244,249,.94);backdrop-filter:blur(30px);box-shadow:0 -10px 40px rgba(20,40,80,.18);padding:16px 34px 0}
+.dark .sheet{background:rgba(28,36,48,.95)}
+.grab{width:120px;height:7px;border-radius:4px;background:#AEB8C6;margin:0 auto 12px}
+.sh{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.sh h3{font-size:24px;font-weight:600}
+.sh .st{font-size:17px;color:var(--sub);margin-left:12px}
+.sh .x{margin-left:auto;display:flex;gap:10px}
+.round{width:52px;height:52px;border-radius:14px;background:var(--card2);display:grid;place-items:center}
+.round svg{width:26px;height:26px}
+.ctl{display:flex;gap:14px;align-items:stretch}
+.ctl .blk:first-child:last-child{flex:1}
+.blk{background:var(--card2);border-radius:20px;padding:16px 18px}
+.blk .h{font-size:16px;color:var(--sub);margin-bottom:10px}
+.tile{width:104px;height:96px;border-radius:16px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:16px;color:var(--sub)}
+.tile svg{width:32px;height:32px;color:var(--text)}
+.tile.on{background:var(--blue);color:#fff}.tile.on svg{color:#fff}
+.tiles{display:flex;gap:10px}
+.dial{display:flex;align-items:center;gap:10px}
+.step{width:58px;height:96px;border-radius:16px;background:var(--card);display:grid;place-items:center;font-size:34px;font-weight:300}
+.val{width:118px;text-align:center}
+.val b{font-size:46px;font-weight:700}.val b small{font-size:20px;font-weight:500;color:var(--sub)}
+.val div{font-size:15px;color:var(--sub)}
+.fanbar{display:flex;gap:4px;justify-content:center;margin-top:6px}
+.fanbar i{width:8px;height:14px;border-radius:2px;background:var(--line)}
+.fanbar i.on{background:var(--blue)}
+/* thanh nhạc nổi */
+.music{position:absolute;z-index:7;left:1310px;top:560px;width:560px;height:96px;border-radius:48px;background:rgba(250,252,255,.92);
+  backdrop-filter:blur(24px);box-shadow:0 8px 30px rgba(20,40,80,.18);display:flex;align-items:center;padding:0 14px;gap:14px}
+.dark .music{background:rgba(33,42,54,.94)}
+.art{width:70px;height:70px;border-radius:50%;background:conic-gradient(from 200deg,#1F6BF2,#7FB0FF,#9C7BFF,#1F6BF2);display:grid;place-items:center}
+.art::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--card2)}
+.mt{flex:1;min-width:0}.mt b{display:block;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mt span{font-size:15px;color:var(--sub)}
+.mb{width:56px;height:56px;border-radius:50%;display:grid;place-items:center}.mb svg{width:28px;height:28px}
+.mb.p{background:var(--blue);color:#fff}
+.prog{position:absolute;left:96px;right:200px;bottom:12px;height:3px;background:var(--line);border-radius:2px}.prog i{display:block;width:42%;height:100%;background:var(--blue);border-radius:2px}
+/* tay kéo nhỏ ở mép dưới */
+.handle{position:absolute;left:880px;bottom:6px;width:160px;height:8px;border-radius:4px;background:rgba(120,135,155,.75);z-index:6}
+/* thanh OEM của xe (trái) – vẽ mờ */
+.oem{position:absolute;left:0;top:50px;width:160px;height:670px;background:rgba(160,172,188,.18);z-index:2}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:24px;background:#1B2330;color:#fff;border-radius:20px;padding:10px 22px;font-size:16px;z-index:10}
+.note{position:absolute;right:30px;bottom:20px;font-size:14px;color:var(--sub);z-index:4}
+/* trang icon */
+.icons{display:flex;gap:80px;align-items:center;justify-content:center;height:720px;background:var(--bg)}
+.ic{display:flex;flex-direction:column;align-items:center;gap:20px;font-size:20px;color:var(--sub)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-grid" viewBox="0 0 24 24"><path fill="currentColor" d="M3 3h8v10H3zM13 3h8v6h-8zM13 11h8v10h-8zM3 15h8v6H3z"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3v7M7.5 6.5a7 7 0 1 0 9 0"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3 2 8l10 5 10-5-10-5zM2 13l10 5 10-5"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 11v6M12 7.5v.1"/></symbol>
+  <symbol id="i-fuel" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 2v7a1.5 1.5 0 0 0 3 0V8l-2-3"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/><path fill="currentColor" d="M18 2a3 3 0 0 1 3 3c0 2.2-3 5-3 5s-3-2.8-3-5a3 3 0 0 1 3-3z"/></symbol>
+  <symbol id="i-batt" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M7 4v3M17 4v3M7 13.5h3M15.5 12v3M14 13.5h3"/></symbol>
+  <symbol id="i-temp" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><circle cx="12" cy="17" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"/></symbol>
+  <symbol id="i-odo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 17a8 8 0 1 1 16 0M12 17l4-5"/><circle cx="12" cy="17" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 3v8M7 6.3a7.5 7.5 0 1 0 10 0"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><text x="12" y="16.5" text-anchor="middle" font-size="10" font-weight="700" font-family="Segoe UI,Arial" fill="currentColor">AUTO</text></symbol>
+  <symbol id="i-ac" viewBox="0 0 24 24"><text x="12" y="16.5" text-anchor="middle" font-size="11" font-weight="700" font-family="Segoe UI,Arial" fill="currentColor">A/C</text></symbol>
+  <symbol id="i-recirc" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 17h13a4 4 0 0 0 0-8H6"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m9 6-3 3 3 3"/><path stroke="currentColor" stroke-width="2" d="M3 21h18"/></symbol>
+  <symbol id="i-blow" viewBox="0 0 24 24"><circle cx="9" cy="5" r="2" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 8v6l4 6M9 14H5M13 9h7M15 13h5"/></symbol>
+  <symbol id="i-defF" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 10c4-4 14-4 18 0l-3 9H6zM9 11c-1 2 1 3 0 5M12 11c-1 2 1 3 0 5M15 11c-1 2 1 3 0 5"/></symbol>
+  <symbol id="i-defR" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 9c-1 2 1 3 0 6M12 9c-1 2 1 3 0 6M15 9c-1 2 1 3 0 6"/></symbol>
+  <symbol id="i-win" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 20V10l7-6h9v16zM4 12h16"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 15v-3"/></symbol>
+  <symbol id="i-roof" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 16h18M5 16l2-6h10l2 6M9 10l1-3h4l1 3"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.3" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-bt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m7 7 10 10-5 4V3l5 4L7 17"/></symbol>
+  <symbol id="i-eco" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15M5 19l7-7"/></symbol>
+  <symbol id="i-comfort" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 12c3-4 6-4 9 0s6 4 9 0"/></symbol>
+  <symbol id="i-sport" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M6 5h2v14H6zM20 5v14L9 12z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M16 5h2v14h-2zM4 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+  <symbol id="i-bt-s" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m7 7 10 10-5 4V3l5 4L7 17"/></symbol>
+ </defs>
+</svg>
+
+<div id="root"></div>
+
+<template id="t-nav">
+  <nav class="nav">
+    <a data-k="overview"><svg><use href="#i-grid"/></svg>Tổng quan</a>
+    <a data-k="panel"><svg><use href="#i-panel"/></svg>Điều khiển nhanh</a>
+    <a data-k="start"><svg><use href="#i-key"/></svg>Khi nổ máy</a>
+    <a data-k="overlays"><svg><use href="#i-layers"/></svg>Lớp nổi</a>
+    <a data-k="music"><svg><use href="#i-music"/></svg>Nhạc và cuộc gọi</a>
+    <a data-k="diag"><svg><use href="#i-info"/></svg>Chẩn đoán</a>
+  </nav>
+</template>
+
+<template id="t-sys">
+  <div class="sys"><span>FM 99,9</span><span>12 345 km</span>
+    <span class="r"><svg width="22" height="22"><use href="#i-bt-s"/></svg><svg width="24" height="24"><use href="#i-wifi"/></svg><span style="color:var(--text)">09:06</span></span></div>
+  <div class="oem"></div>
+</template>
+
+<template id="t-overview">
+  <div class="hero"></div>
+  <div class="pill"><span class="dot"></span>Đã nối xe <span style="color:var(--sub)">09:06:35</span></div>
+  <div class="content">
+    <div class="grid">
+      <div class="card big">
+        <div style="flex:1">
+          <div class="t">Nhiên liệu</div>
+          <div class="v">38<small>%</small></div>
+          <div class="s" style="display:flex;gap:8px;align-items:center"><svg width="20" height="20" style="color:var(--blue)"><use href="#i-fuel"/></svg>Còn khoảng 19 lít</div>
+          <div class="bar"><i style="width:38%"></i></div>
+          <div class="row2"><span>19 / 50 L</span><span>Bình 50 L</span></div>
+        </div>
+        <div class="tank"><i></i></div>
+      </div>
+      <div class="card mini"><div class="ico"><svg><use href="#i-route"/></svg></div><div><div class="t">Còn đi được</div><div class="v">286<small>km</small></div></div></div>
+      <div class="card mini"><div class="ico"><svg><use href="#i-batt"/></svg></div><div><div class="t">Ắc quy 12 V</div><div class="v">14.1<small>V</small></div><div class="okbar"></div></div></div>
+      <div class="card mini"><div class="ico"><svg><use href="#i-temp"/></svg></div><div><div class="t">Ngoài trời</div><div class="v">31<small>°C</small></div></div></div>
+      <div class="card mini"><div class="ico"><svg><use href="#i-snow"/></svg></div><div><div class="t">Điều hoà · AUTO</div><div class="v">24.5<small>°C</small></div></div></div>
+    </div>
+  </div>
+</template>
+
+<template id="t-start">
+  <div class="hero" style="opacity:.6"></div>
+  <div class="content" style="width:720px">
+    <div class="cap">Kịch bản khi nổ máy</div>
+    <div class="tg"><div class="sw on"></div><div><div class="t">Chạy khi nổ máy</div><div class="s">Một lần mỗi khi máy chuyển từ tắt sang nổ, kể cả khi đầu xe vừa khởi động</div></div></div>
+    <div class="cap" style="margin-top:22px">Chế độ lái</div>
+    <div class="seg"><b>Không đổi</b><b>Eco</b><b class="on">Comfort</b><b>Sport</b></div>
+    <div class="cap" style="margin-top:22px">Điều hoà</div>
+    <div class="tg" style="margin:6px 0 14px"><div class="sw on"></div><div><div class="t">Bật AUTO</div><div class="s">Điều hoà tự chọn quạt và hướng gió</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="sel">Nhiệt độ <span>24,5 °C ›</span></div>
+      <div class="sel">Chờ trước khi chạy <span>5 giây ›</span></div>
+      <div class="sel">Mở app <span>Vietmap Live ›</span></div>
+      <div class="sel">Phát nhạc <span>Bật ›</span></div>
+    </div>
+    <div class="btn" style="margin-top:18px">Chạy thử ngay</div>
+  </div>
+  <div class="toast">Đã áp dụng: Comfort · AUTO 24,5 °C</div>
+</template>
+
+<template id="t-overlays">
+  <div class="hero" style="opacity:.6"></div>
+  <div class="content" style="width:720px">
+    <div class="cap">Lớp nổi trên mọi màn hình</div>
+    <div class="tg"><div class="sw on"></div><div><div class="t">Bảng điều khiển nhanh</div><div class="s">Vuốt lên từ tay kéo ở mép dưới. Giữ rồi kéo ngang để đổi vị trí tay kéo</div></div></div>
+    <div class="tg"><div class="sw on"></div><div><div class="t">Thanh nhạc nổi</div><div class="s">Tên bài và nút điều khiển. Giữ 0,5 giây rồi kéo để di chuyển</div></div></div>
+    <div class="tg"><div class="sw on"></div><div><div class="t">Ẩn thanh nhạc khi không phát</div><div class="s">Tự hiện lại khi có nhạc</div></div></div>
+    <div class="cap" style="margin-top:20px">Giao diện</div>
+    <div class="seg"><b class="on">Theo xe</b><b>Sáng</b><b>Tối</b></div>
+    <div class="cap" style="margin-top:20px">An toàn</div>
+    <div class="sel">Tự đóng kính khi chạy trên <span>80 km/h ›</span></div>
+  </div>
+  <div class="note">Thanh trạng thái · chia màn · giọng nói: dùng THT-StatusBar, THT Split, THT Voice</div>
+</template>
+
+<template id="t-sheet">
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh"><h3>Điều khiển nhanh</h3><span class="st">Quạt mức 3</span>
+      <div class="x"><div class="round"><svg><use href="#i-gear"/></svg></div><div class="round"><svg><use href="#i-close"/></svg></div></div></div>
+    <div class="ctl">
+      <div class="blk">
+        <div class="h">Điều hoà</div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div class="tiles">
+            <div class="tile on"><svg><use href="#i-power"/></svg>Bật</div>
+            <div class="tile on"><svg><use href="#i-auto"/></svg>AUTO</div>
+            <div class="tile on"><svg><use href="#i-ac"/></svg>A/C</div>
+          </div>
+          <div class="dial"><div class="step">−</div><div class="val"><b>24.5<small>°</small></b><div>Nhiệt độ</div></div><div class="step">+</div></div>
+          <div class="dial"><div class="step">−</div><div class="val"><b>3</b><div class="fanbar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div><div class="step">+</div></div>
+          <div class="tiles">
+            <div class="tile"><svg><use href="#i-recirc"/></svg>Gió trong</div>
+            <div class="tile"><svg><use href="#i-blow"/></svg>Mặt</div>
+            <div class="tile"><svg><use href="#i-defF"/></svg>Kính trước</div>
+            <div class="tile on"><svg><use href="#i-defR"/></svg>Kính sau</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ctl" style="margin-top:14px">
+      <div class="blk"><div class="h">Chế độ lái</div><div class="tiles">
+        <div class="tile"><svg><use href="#i-eco"/></svg>Eco</div>
+        <div class="tile on"><svg><use href="#i-comfort"/></svg>Comfort</div>
+        <div class="tile"><svg><use href="#i-sport"/></svg>Sport</div></div></div>
+      <div class="blk"><div class="h">Kính và cửa sổ trời</div><div class="tiles">
+        <div class="tile"><svg><use href="#i-win"/></svg>Đóng kính</div>
+        <div class="tile"><svg><use href="#i-win"/></svg>Hé kính</div>
+        <div class="tile"><svg><use href="#i-roof"/></svg>Hé mui</div>
+        <div class="tile"><svg><use href="#i-roof"/></svg>Đóng mui</div></div></div>
+      <div class="blk"><div class="h">Kết nối</div><div class="tiles">
+        <div class="tile on"><svg><use href="#i-wifi"/></svg>Wi-Fi</div>
+        <div class="tile on"><svg><use href="#i-bt"/></svg>Bluetooth</div></div></div>
+    </div>
+  </div>
+</template>
+
+<template id="t-music">
+  <div class="music"><div class="art"></div>
+    <div class="mt"><b>Chạy Về Khóc Với Anh</b><span>Erik · Zing MP3</span></div>
+    <div class="mb"><svg><use href="#i-prev"/></svg></div><div class="mb p"><svg><use href="#i-pause"/></svg></div><div class="mb"><svg><use href="#i-next"/></svg></div>
+    <div class="prog"><i></i></div>
+  </div>
+</template>
+
+<template id="t-icon">
+  <div class="icons">
+    <div class="ic"><img src="icon.svg" width="256" height="256">Icon 256 px</div>
+    <div class="ic"><img src="icon.svg" width="128" height="128">128 px</div>
+    <div class="ic"><img src="icon.svg" width="72" height="72">72 px (ngăn app)</div>
+    <div class="ic" style="background:#141A22;padding:40px;border-radius:30px;color:#93A0B2"><img src="icon.svg" width="128" height="128">Trên nền tối</div>
+  </div>
+</template>
+
+<script>
+const q = new URLSearchParams(location.search);
+const view = q.get('v') || 'overview';
+const dark = q.get('dark') === '1';
+const root = document.getElementById('root');
+const T = id => document.getElementById('t-' + id).content.cloneNode(true);
+if (view === 'icon') { root.appendChild(T('icon')); }
+else {
+  const s = document.createElement('div'); s.className = 'screen' + (dark ? ' dark' : '');
+  if (dark) document.body.classList.add('dark');
+  s.appendChild(T('sys')); s.appendChild(T('nav'));
+  const page = view === 'sheet' ? 'overview' : view;
+  s.appendChild(T(page));
+  s.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.k === (view === 'sheet' ? 'panel' : page)));
+  if (view === 'sheet') s.appendChild(T('sheet'));
+  else { s.appendChild(T('music')); const h = document.createElement('div'); h.className = 'handle'; s.appendChild(h); }
+  root.appendChild(s);
+}
+</script>
+</body>
+</html>

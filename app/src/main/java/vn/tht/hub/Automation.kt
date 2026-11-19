@@ -31,7 +31,7 @@ class Automation(private val hub: HubService, private val prefs: Prefs) {
         closeWindowsBySpeed(d)
     }
 
-    private fun runStartScenario() {
+    fun runStartScenario() {
         Log.i(TAG, "Chạy kịch bản nổ máy")
         val c = hub.control
         if (prefs.autoClimateAuto) c.setValue(F.HVAC_AUTO, F.ZONE_ALL, F.ON, "Điều hoà AUTO") { log(it.message) }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chữ H ghép từ hai thanh trượt (vùng an toàn 66dp ở giữa) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#8CFFFFFF" android:pathData="M35,31a4.5,4.5 0 0 1 9,0v46a4.5,4.5 0 0 1 -9,0z"/>
+    <path android:fillColor="#8CFFFFFF" android:pathData="M64,31a4.5,4.5 0 0 1 9,0v46a4.5,4.5 0 0 1 -9,0z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M39.5,49.5h29a4.5,4.5 0 0 1 0,9h-29a4.5,4.5 0 0 1 0,-9z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M39.5,32m-8.5,0a8.5,8.5 0 1 0 17,0a8.5,8.5 0 1 0 -17,0"/>
+    <path android:fillColor="#FF2A6CF0" android:pathData="M39.5,32m-3.3,0a3.3,3.3 0 1 0 6.6,0a3.3,3.3 0 1 0 -6.6,0"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M68.5,76m-8.5,0a8.5,8.5 0 1 0 17,0a8.5,8.5 0 1 0 -17,0"/>
+    <path android:fillColor="#FF2A6CF0" android:pathData="M68.5,76m-3.3,0a3.3,3.3 0 1 0 6.6,0a3.3,3.3 0 1 0 -6.6,0"/>
+</vector>

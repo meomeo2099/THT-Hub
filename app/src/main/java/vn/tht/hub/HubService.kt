@@ -65,7 +65,9 @@ class HubService : Service() {
         startForeground(NOTIF_ID, buildNotification())
 
         val profile = (application as HubApp).profile
-        car = CarPropertySource(this, profile) { d ->
+        car = CarPropertySource(this, profile) { d0 ->
+            // Bản debug bật chế độ mẫu (khoá demo_mode) thì dùng số mẫu khi không có xe
+            val d = d0 ?: if (vn.tht.hub.vehicle.DemoCarFunction.enabled(this)) vn.tht.hub.vehicle.DemoCarFunction.vehicle() else null
             vehicle = d
             automation.onVehicle(d)
             notifyChanged()
@@ -85,6 +87,8 @@ class HubService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_APPLY) applyOverlays()
         if (intent?.action == ACTION_TOGGLE_PANEL) quickPanel?.toggle()
+        if (intent?.action == ACTION_RUN_START) automation.runStartScenario()
+        if (intent?.action == ACTION_RESTYLE) { quickPanel?.hide(); quickPanel = null; musicBar?.hide(); musicBar = null; applyOverlays() }
         return START_STICKY
     }
 
@@ -120,7 +124,7 @@ class HubService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "THT Hub", NotificationManager.IMPORTANCE_MIN))
         val open = PendingIntent.getActivity(
-            this, 0, Intent(this, SettingsActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
+            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
         )
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_car)
@@ -136,6 +140,8 @@ class HubService : Service() {
         private const val NOTIF_ID = 7
         const val ACTION_APPLY = "vn.tht.hub.APPLY"
         const val ACTION_TOGGLE_PANEL = "vn.tht.hub.TOGGLE_PANEL"
+        const val ACTION_RUN_START = "vn.tht.hub.RUN_START"
+        const val ACTION_RESTYLE = "vn.tht.hub.RESTYLE"
 
         @Volatile var instance: HubService? = null; private set
 
