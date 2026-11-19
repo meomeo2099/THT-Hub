@@ -103,12 +103,14 @@ class MainActivity : Activity() {
         val root = FrameLayout(this).apply { setBackgroundColor(p.bg) }
         // Chừa giao diện gốc của xe: thanh OEM trái và vùng trạng thái trên (Coolray: mStable=[160,50][1920,720]).
         // Lấy theo khoảng hệ thống báo; hệ thống báo 0 thì dùng mặc định của xe.
+        root.setPadding(STOCK_LEFT, STOCK_TOP, 0, 0)
         root.setOnApplyWindowInsetsListener { v, ins ->
             val left = maxOf(ins.systemWindowInsetLeft, ins.stableInsetLeft).takeIf { it > 0 } ?: STOCK_LEFT
             val top = maxOf(ins.systemWindowInsetTop, ins.stableInsetTop).takeIf { it > 0 } ?: STOCK_TOP
             v.setPadding(left, top, ins.systemWindowInsetRight, ins.systemWindowInsetBottom)
             ins.consumeSystemWindowInsets()
         }
+        root.requestApplyInsets()
         hero = ImageView(this).apply {
             setImageResource(if (p.dark) R.drawable.hero_night else R.drawable.hero_day)
             scaleType = ImageView.ScaleType.CENTER_CROP
