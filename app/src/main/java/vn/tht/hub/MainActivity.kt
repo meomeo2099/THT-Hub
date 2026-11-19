@@ -490,7 +490,7 @@ class MainActivity : Activity() {
                         hub.control.background({ dw.snapshot() }) { now ->
                             val r = now?.let { dw.learn(i, base, it) }
                             step.text = if (r != null) "Đã học ${D.DOOR_NAMES[i]}: ${r.probe.label}. Đóng cửa rồi làm cửa tiếp theo."
-                                else "Không thấy tín hiệu nào đổi. Cửa ${D.DOOR_NAMES[i].lowercase()} đã mở chưa?"
+                                else "Không thấy tín hiệu nào đổi. ${D.DOOR_NAMES[i]} đã mở chưa?"
                             renderRows()
                         }
                     }, Ui.lp(Ui.WRAP, 56))
