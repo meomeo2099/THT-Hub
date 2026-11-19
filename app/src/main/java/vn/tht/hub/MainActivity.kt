@@ -36,6 +36,12 @@ import vn.tht.hub.vehicle.PlatformSignature
  */
 class MainActivity : Activity() {
 
+    private companion object {
+        /** Thanh OEM bên trái và vùng trạng thái trên của Coolray 2025 (px, 160 dpi). */
+        const val STOCK_LEFT = 160
+        const val STOCK_TOP = 50
+    }
+
     private enum class Page(val title: String, val icon: Int) {
         OVERVIEW("Tổng quan", R.drawable.ic_nav_overview),
         PANEL("Điều khiển nhanh", R.drawable.ic_nav_panel),
@@ -95,6 +101,14 @@ class MainActivity : Activity() {
         p = Palette.of(this)
         window.statusBarColor = p.bg
         val root = FrameLayout(this).apply { setBackgroundColor(p.bg) }
+        // Chừa giao diện gốc của xe: thanh OEM trái và vùng trạng thái trên (Coolray: mStable=[160,50][1920,720]).
+        // Lấy theo khoảng hệ thống báo; hệ thống báo 0 thì dùng mặc định của xe.
+        root.setOnApplyWindowInsetsListener { v, ins ->
+            val left = maxOf(ins.systemWindowInsetLeft, ins.stableInsetLeft).takeIf { it > 0 } ?: STOCK_LEFT
+            val top = maxOf(ins.systemWindowInsetTop, ins.stableInsetTop).takeIf { it > 0 } ?: STOCK_TOP
+            v.setPadding(left, top, ins.systemWindowInsetRight, ins.systemWindowInsetBottom)
+            ins.consumeSystemWindowInsets()
+        }
         hero = ImageView(this).apply {
             setImageResource(if (p.dark) R.drawable.hero_night else R.drawable.hero_day)
             scaleType = ImageView.ScaleType.CENTER_CROP
