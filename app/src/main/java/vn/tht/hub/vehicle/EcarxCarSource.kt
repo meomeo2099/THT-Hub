@@ -79,20 +79,15 @@ class EcarxCarSource(
             val cl = loader ?: adaptApiLoader().also { loader = it }
             val c = car ?: createCar(cl).also { car = it }
             val connectable = runCatching { cl.loadClass(CONNECTABLE) }.getOrNull()
-            if (connectable != null && connectable.isInstance(c)) {
-                if (!watching) watching = watchConnection(cl, connectable, c)
-                val already = runCatching { connectable.getMethod("isConnected").invoke(c) == true }.getOrDefault(false)
-                if (already) {
-                    fetchFunction(c)
-                } else {
-                    status = "đang kết nối dịch vụ xe…"
-                    connectable.getMethod("connect").invoke(c)
-                    // Nếu bản AdaptAPI không gọi onConnected: thử lấy ICarFunction sau một lúc
-                    handler.postDelayed({ if (!connected) fetchFunction(c) }, CONNECT_WAIT_MS)
-                }
-            } else {
-                fetchFunction(c)
-            }
+            if (connectable != null && connectable.isInstance(c) && !watching) watching = watchConnection(cl, connectable, c)
+            // Như THT Voice: connect() rồi CHỜ isConnected + getCarPropertyManager trước khi lấy ICarFunction
+            // (CarFunctionImpl giữ VehicleSignalManager đầu tiên cho cả tiến trình; lấy sớm thì lệnh MCU như kính không tới xe).
+            status = "đang kết nối dịch vụ xe…"
+            Thread {
+                val ready = awaitCarReady()
+                Log.i(TAG, "CarImpl sẵn sàng: $ready")
+                handler.post { if (!connected) fetchFunction(c) }
+            }.apply { name = "tht-car-connect"; isDaemon = true }.start()
         } catch (t: Throwable) {
             Log.w(TAG, "ECARX AdaptAPI không khả dụng: $t")
             status = "không có AdaptAPI (${t.javaClass.simpleName}: ${t.message})"
@@ -436,8 +431,29 @@ class EcarxCarSource(
     private fun carMethod(name: String, vararg types: Class<*>): Method? =
         car?.javaClass?.methods?.firstOrNull { it.name == name && it.parameterTypes.contentEquals(arrayOf(*types)) }
 
+    /**
+     * Như THT Voice `EcarxCarConnection.awaitConnected`: `Car.create` chỉ tạo CarImpl; phải gọi `connect()` và chờ
+     * `isConnected()` + `getCarPropertyManager()` sẵn sàng thì lệnh MCU (kính…) mới tới xe. Gọi trên luồng nền.
+     */
+    fun awaitCarReady(timeoutMs: Long = 5_000L): Boolean {
+        val c = car ?: return false
+        fun m(name: String) = c.javaClass.methods.firstOrNull { it.name == name && it.parameterTypes.isEmpty() }
+        val isConn = m("isConnected") ?: return true      // bản AdaptAPI không có khái niệm nối: coi như sẵn sàng
+        val manager = m("getCarPropertyManager")
+        fun ready() = runCatching { isConn.invoke(c) == true && (manager == null || manager.invoke(c) != null) }.getOrDefault(false)
+        if (ready()) return true
+        runCatching { m("connect")?.invoke(c) }
+        val until = android.os.SystemClock.uptimeMillis() + timeoutMs
+        while (!ready()) {
+            if (android.os.SystemClock.uptimeMillis() > until) { Log.w(TAG, "CarImpl chưa sẵn sàng sau $timeoutMs ms"); return false }
+            try { Thread.sleep(50) } catch (_: InterruptedException) { return false }
+        }
+        return true
+    }
+
     /** `CarImpl.sendBytesToMcuByPropID(prop, bytes)`; true = MCU nhận lệnh (chưa chắc kính đã chạy). */
     fun sendBytesToMcu(prop: Int, bytes: ByteArray): Boolean = try {
+        awaitCarReady()
         val m = carMethod("sendBytesToMcuByPropID", Int::class.javaPrimitiveType!!, ByteArray::class.java)
         val r = m?.invoke(car, prop, bytes)
         Log.i(TAG, "sendBytesToMcu ${EcarxFunctions.hex(prop)} ${bytes.joinToString(",")} -> $r")

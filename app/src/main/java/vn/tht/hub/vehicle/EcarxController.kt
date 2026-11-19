@@ -231,18 +231,54 @@ class EcarxController(
     fun setWindowPercent(windows: List<Int>, percent: Int, done: (Result) -> Unit) = run(done) {
         val p = percent.coerceIn(0, 100)
         if (p > 0) safetyBlock(Safety.BELOW_80)?.let { return@run it }
-        val bytes = ByteArray(8) { -1 }
-        windows.filter { it in 0..3 }.forEach { bytes[it] = p.toByte() }
-        val what = if (windows.size >= 4) "tất cả kính" else windows.joinToString(", ") { WINDOW_NAMES.getOrElse(it) { "$it" } }
-        if (ecarx.sendBytesToMcu(WINDOW_GROUP, bytes)) {
-            Result(true, when (p) { 0 -> "Đóng $what"; 100 -> "Mở hết $what"; else -> "Hé $what $p%" })
-        } else Result(false, "Xe không nhận lệnh kính (MCU)")
+        val list = windows.filter { it in 0..3 }.distinct()
+        val what = if (list.size >= 4) "tất cả kính" else list.joinToString(", ") { WINDOW_NAMES[it] }
+        // Giống THT Voice WindowVoiceCommandExecutor: chờ CarImpl sẵn sàng, gửi từng kính, có đường dự phòng, đọc lại
+        ecarx.awaitCarReady()
+        val results = list.map { moveWindow(it, p) }
+        val refused = results.filter { !it.accepted }
+        when {
+            refused.isNotEmpty() -> Result(false, "Xe không nhận lệnh cho " + refused.joinToString { WINDOW_NAMES[it.index] })
+            results.all { it.confirmed } -> Result(true, when (p) { 0 -> "Đã đóng $what"; 100 -> "Đã mở hết $what"; else -> "Đã hé $what $p%" })
+            results.any { it.moved } -> Result(true, "Kính đang chạy về $p%")
+            else -> Result(true, "Đã gửi lệnh kính, chưa đọc lại được vị trí")
+        }
+    }
+
+    private class Move(val index: Int, val accepted: Boolean, val confirmed: Boolean, val moved: Boolean)
+
+    /** Một kính: MCU nhóm kính → BCM_FUNC_WINDOW_POS (số thực, rồi số nguyên) → BCM_FUNC_WINDOW bật/tắt; đọc lại tới 1,5 s. */
+    private fun moveWindow(i: Int, p: Int): Move {
+        val zone = WINDOW_ZONES[i]
+        val before = windowPosition(i)
+        if (before != null && kotlin.math.abs(before - p) <= WINDOW_TOLERANCE) return Move(i, true, true, false)
+        var ok = ecarx.sendBytesToMcu(WINDOW_GROUP, ByteArray(8) { -1 }.also { it[i] = p.toByte() })
+        if (!ok) ok = ecarx.setFloat(WINDOW_POS_AREA, zone, p.toFloat())
+        if (!ok) ok = ecarx.setInt(WINDOW_POS_AREA, zone, p)
+        if (!ok && (p == 0 || p == 100)) ok = ecarx.setInt(BCM_FUNC_WINDOW, zone, if (p == 100) F.ON else F.OFF)
+        if (!ok) return Move(i, false, false, false)
+        var prev = before; var moved = false
+        for (d in longArrayOf(300, 600, 900, 1200, 1500)) {
+            Thread.sleep(d)
+            val now = windowPosition(i) ?: continue
+            if (kotlin.math.abs(now - p) <= WINDOW_TOLERANCE) return Move(i, true, true, moved)
+            if (prev != null && kotlin.math.abs(p - now) < kotlin.math.abs(p - prev)) moved = true
+            prev = now
+        }
+        return Move(i, true, false, moved)
+    }
+
+    /** Vị trí một kính, thứ tự đọc như THT Voice: MCU theo kính → BCM_FUNC_WINDOW_CURRENT_POS → BCM_FUNC_WINDOW_POS. */
+    private fun windowPosition(i: Int): Int? {
+        val zone = WINDOW_ZONES[i]
+        ecarx.getIntByProp(WINDOW_STATE[i], WINDOW_POS_AREA)?.takeIf { it in 0..100 }?.let { return it }
+        ecarx.getInt(BCM_FUNC_WINDOW_CURRENT_POS, zone)?.takeIf { it in 0..100 }?.let { return it }
+        return (ecarx.getFloat(BCM_FUNC_WINDOW_CURRENT_POS, zone) ?: ecarx.getFloat(WINDOW_POS_AREA, zone))
+            ?.takeIf { it.isFinite() && it in 0f..100f }?.let { Math.round(it) }
     }
 
     /** Vị trí 4 kính (0–100 %), null = không đọc được. */
-    fun windowPositions(): List<Int?> = WINDOW_STATE.map { prop ->
-        ecarx.getIntByProp(prop, WINDOW_POS_AREA)?.takeIf { it in 0..100 }
-    }
+    fun windowPositions(): List<Int?> { ecarx.awaitCarReady(); return (0..3).map { windowPosition(it) } }
 
     /** Tất cả kính: `0x20030600` + `0x20030602` (hé/mở) hoặc `0x20030603` (đóng). */
     fun setWindows(open: Boolean, done: (Result) -> Unit) = run(done) {
@@ -406,6 +442,11 @@ class EcarxController(
         /** Vùng đọc vị trí: BCM_FUNC_WINDOW_POS. */
         const val WINDOW_POS_AREA = 553845504
         val WINDOW_NAMES = listOf("kính lái", "kính phụ", "kính sau trái", "kính sau phải")
+        /** Vùng kính ECARX (THT Voice Coolray2025Functions.WINDOW_ROW_*): lái 16, phụ 32, sau trái 256, sau phải 512. */
+        val WINDOW_ZONES = intArrayOf(16, 32, 256, 512)
+        const val BCM_FUNC_WINDOW = 553844992              // 0x21030100
+        const val BCM_FUNC_WINDOW_CURRENT_POS = 553846272  // 0x21030600
+        private const val WINDOW_TOLERANCE = 3
         private const val VERIFY_DELAY_MS = 300L
         /** Dải ID điều hoà (`0x10000000..0x10FFFFFF`) – Coolray ghi các ID này bằng bản không vùng. */
         private val HVAC_IDS = 0x10000000..0x10FFFFFF
