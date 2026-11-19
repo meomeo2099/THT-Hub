@@ -500,14 +500,7 @@ class EcarxCarSource(
             blowing = ifSupported(f.HVAC_BLOWING_MODE) { f.levelOf(f.HVAC_BLOWING_MODE, getInt(f.HVAC_BLOWING_MODE)) },
             defrostFront = ifSupported(f.HVAC_DEFROST_FRONT) { getInt(f.HVAC_DEFROST_FRONT) }?.let { it == f.ON },
             defrostRear = ifSupported(f.HVAC_DEFROST_REAR) { getInt(f.HVAC_DEFROST_REAR) }?.let { it == f.ON },
-            seatHeatLeft = ifSupported(f.HVAC_SEAT_HEATING, f.ZONE_ROW_1_LEFT) {
-                f.levelOf(f.HVAC_SEAT_HEATING, getInt(f.HVAC_SEAT_HEATING, f.ZONE_ROW_1_LEFT))
-            },
-            seatHeatRight = ifSupported(f.HVAC_SEAT_HEATING, f.ZONE_ROW_1_RIGHT) {
-                f.levelOf(f.HVAC_SEAT_HEATING, getInt(f.HVAC_SEAT_HEATING, f.ZONE_ROW_1_RIGHT))
-            },
-            tempRightC = ifSupported(f.HVAC_TEMP, f.ZONE_ROW_1_RIGHT) { getFloat(f.HVAC_TEMP, f.ZONE_ROW_1_RIGHT) }
-                ?.takeIf { it in f.TEMP_MIN..f.TEMP_MAX },
+            // Coolray 2025 của chủ xe: điều hoà MỘT vùng, không sưởi/làm mát ghế → không đọc ghế, không đọc nhiệt độ ghế phụ.
         )
     }
 
