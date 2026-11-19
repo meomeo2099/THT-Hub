@@ -235,9 +235,14 @@ class EcarxCarSource(
 
     /** Gọi `isFunctionSupported` bản 1 tham số trước (đúng như AutoEasy), rồi bản 2 tham số. */
     private fun rawSupportState(id: Int, zone: Int): String? {
-        val raw = runCatching { mSupported1?.invoke(carFunction, id) }.getOrNull()
-            ?: runCatching { mSupported2?.invoke(carFunction, id, zone) }.getOrNull()
-            ?: return null
+        // Như THT Voice: chức năng toàn xe hỏi bản 1 tham số; chức năng theo vùng (nhiệt độ ghế lái…) phải hỏi KÈM vùng —
+        // trên Coolray bản không vùng của 0x10060100 trả "convert function to propid error".
+        val raw = if (zone == EcarxFunctions.ZONE_ALL || zone == 0) {
+            runCatching { mSupported1?.invoke(carFunction, id) }.getOrNull()
+                ?: runCatching { mSupported2?.invoke(carFunction, id, zone) }.getOrNull()
+        } else {
+            runCatching { mSupported2?.invoke(carFunction, id, zone) }.getOrNull()
+        } ?: return null
         return if (raw is Enum<*>) raw.name else raw.toString()
     }
 
@@ -481,7 +486,7 @@ class EcarxCarSource(
         val f = EcarxFunctions
         fun <T> ifSupported(id: Int, zone: Int = f.ZONE_ALL, read: () -> T?): T? =
             if (isSupported(id, zone) != false) read() else null
-        val tempZone = if (isSupported(f.HVAC_TEMP, f.ZONE_ROW_1_LEFT) == true) f.ZONE_ROW_1_LEFT else f.ZONE_ALL
+        val tempZone = if (isSupported(f.HVAC_TEMP, f.ZONE_ROW_1_LEFT) != false) f.ZONE_ROW_1_LEFT else f.ZONE_ALL
         return EcarxInfo(
             hvacOn = ifSupported(f.HVAC_POWER) { getInt(f.HVAC_POWER) }?.let { it == f.ON },
             acOn = ifSupported(f.HVAC_AC) { getInt(f.HVAC_AC) }?.let { it == f.ON },
