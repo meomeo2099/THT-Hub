@@ -42,5 +42,5 @@ enum class WheelButton(
     ROLL_DOWN("Con lăn xuống (âm lượng −)", false, icon = R.drawable.ic_chevron_down),
     NEXT("▶ Phải (bài tiếp)", false, icon = R.drawable.ic_chevron_right),
     MODE("MODE (đổi nguồn)", false, text = "MODE"),
-    VIEW("Đổi màn hình", false, icon = R.drawable.ic_nav_layers),
+    VIEW("Đổi màn hình", false, icon = R.drawable.ic_view_switch),
 }
