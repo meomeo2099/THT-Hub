@@ -431,6 +431,32 @@ class EcarxCarSource(
         }
     }
 
+    // ---- Thuộc tính MCU (kính, cửa sổ trời) – cách THT Voice Coolray 2025 dùng ----
+
+    private fun carMethod(name: String, vararg types: Class<*>): Method? =
+        car?.javaClass?.methods?.firstOrNull { it.name == name && it.parameterTypes.contentEquals(arrayOf(*types)) }
+
+    /** `CarImpl.sendBytesToMcuByPropID(prop, bytes)`; true = MCU nhận lệnh (chưa chắc kính đã chạy). */
+    fun sendBytesToMcu(prop: Int, bytes: ByteArray): Boolean = try {
+        val m = carMethod("sendBytesToMcuByPropID", Int::class.javaPrimitiveType!!, ByteArray::class.java)
+        val r = m?.invoke(car, prop, bytes)
+        Log.i(TAG, "sendBytesToMcu ${EcarxFunctions.hex(prop)} ${bytes.joinToString(",")} -> $r")
+        when (r) { is Boolean -> r; is Number -> r.toInt() != 0; else -> false }
+    } catch (t: Throwable) { Log.w(TAG, "sendBytesToMcu lỗi: ${t.cause ?: t}"); false }
+
+    /** Đọc thuộc tính MCU dạng số (1–4 byte little-endian); null = không đọc được, không đoán là 0. */
+    fun getIntByProp(prop: Int, area: Int): Int? = try {
+        val i = Int::class.javaPrimitiveType!!
+        val b2 = carMethod("getBytesByPropID", i, i); val b1 = carMethod("getBytesByPropID", i)
+        if (b2 != null || b1 != null) {
+            val bytes = (if (b2 != null) b2.invoke(car, prop, area) else b1?.invoke(car, prop)) as? ByteArray
+            bytes?.takeIf { it.size in 1..4 }?.foldIndexed(0) { k, acc, x -> acc or ((x.toInt() and 0xFF) shl (k * 8)) }
+        } else {
+            val g2 = carMethod("getIntByPropID", i, i); val g1 = carMethod("getIntByPropID", i)
+            ((g2?.invoke(car, prop, area) ?: g1?.invoke(car, prop)) as? Number)?.toInt()
+        }
+    } catch (t: Throwable) { null }
+
     // ---- Hiển thị ----
 
     /** Trạng thái để hiện trên màn hình chính; chỉ đọc function xe báo hỗ trợ. null nếu chưa nối. */

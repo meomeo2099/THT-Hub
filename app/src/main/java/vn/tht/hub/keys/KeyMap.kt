@@ -30,6 +30,7 @@ enum class KeyAction(val label: String) {
     RECIRC("Gió trong / ngoài"),
     DEFROST_FRONT("Sấy kính trước"),
     WINDOWS_CLOSE("Đóng hết kính"),
+    WINDOWS_CRACK("Hé tất cả kính 20%"),
 }
 
 /** Một nút trên hình vô lăng: mã phím đã học và hai hành động (nhấn / giữ). */

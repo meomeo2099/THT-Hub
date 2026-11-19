@@ -83,7 +83,7 @@ class Automation(private val hub: HubService, private val prefs: Prefs) {
         val now = SystemClock.elapsedRealtime()
         if (now - windowsClosedAt < 60_000) return   // tối đa 1 lần/phút
         windowsClosedAt = now
-        hub.control.setWindows(false) { log("Tự đóng kính (${speed.toInt()} km/h): ${it.message}") }
+        hub.control.setWindowPercent(listOf(0, 1, 2, 3), 0) { log("Tự đóng kính (${speed.toInt()} km/h): ${it.message}") }
     }
 
     private fun mediaKey(code: Int) {

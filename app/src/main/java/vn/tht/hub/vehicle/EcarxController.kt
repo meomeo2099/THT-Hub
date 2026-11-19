@@ -223,6 +223,27 @@ class EcarxController(
         Result(false, "Xe không nhận lệnh rèm")
     }
 
+    /**
+     * Kính theo phần trăm (Coolray 2025, theo THT Voice): MCU `0x287000A2`, 8 byte —
+     * 0 lái, 1 phụ, 2 sau trái, 3 sau phải; 0–100 % mở, 0xFF giữ nguyên. [windows] = các chỉ số kính cần chạy.
+     * Đóng luôn được; mở bị chặn khi chạy trên 80 km/h. Thành công = MCU nhận lệnh; vị trí đọc lại bằng [windowPositions].
+     */
+    fun setWindowPercent(windows: List<Int>, percent: Int, done: (Result) -> Unit) = run(done) {
+        val p = percent.coerceIn(0, 100)
+        if (p > 0) safetyBlock(Safety.BELOW_80)?.let { return@run it }
+        val bytes = ByteArray(8) { -1 }
+        windows.filter { it in 0..3 }.forEach { bytes[it] = p.toByte() }
+        val what = if (windows.size >= 4) "tất cả kính" else windows.joinToString(", ") { WINDOW_NAMES.getOrElse(it) { "$it" } }
+        if (ecarx.sendBytesToMcu(WINDOW_GROUP, bytes)) {
+            Result(true, when (p) { 0 -> "Đóng $what"; 100 -> "Mở hết $what"; else -> "Hé $what $p%" })
+        } else Result(false, "Xe không nhận lệnh kính (MCU)")
+    }
+
+    /** Vị trí 4 kính (0–100 %), null = không đọc được. */
+    fun windowPositions(): List<Int?> = WINDOW_STATE.map { prop ->
+        ecarx.getIntByProp(prop, WINDOW_POS_AREA)?.takeIf { it in 0..100 }
+    }
+
     /** Tất cả kính: `0x20030600` + `0x20030602` (hé/mở) hoặc `0x20030603` (đóng). */
     fun setWindows(open: Boolean, done: (Result) -> Unit) = run(done) {
         // Đóng kính luôn được phép; chỉ chặn mở khi chạy nhanh
@@ -377,9 +398,16 @@ class EcarxController(
         ioWrite.shutdownNow()
     }
 
-    private companion object {
-        const val VERIFY_DELAY_MS = 300L
+    companion object {
+        /** MCU nhóm kính `INFO_ID_WINDOW_GROUP` (THT Voice Coolray2025Functions). */
+        const val WINDOW_GROUP = 678428834            // 0x287000A2
+        /** Trạng thái từng kính: lái, phụ, sau trái, sau phải (`0x2870009D..A0`). */
+        val WINDOW_STATE = intArrayOf(678428829, 678428830, 678428831, 678428832)
+        /** Vùng đọc vị trí: BCM_FUNC_WINDOW_POS. */
+        const val WINDOW_POS_AREA = 553845504
+        val WINDOW_NAMES = listOf("kính lái", "kính phụ", "kính sau trái", "kính sau phải")
+        private const val VERIFY_DELAY_MS = 300L
         /** Dải ID điều hoà (`0x10000000..0x10FFFFFF`) – Coolray ghi các ID này bằng bản không vùng. */
-        val HVAC_IDS = 0x10000000..0x10FFFFFF
+        private val HVAC_IDS = 0x10000000..0x10FFFFFF
     }
 }

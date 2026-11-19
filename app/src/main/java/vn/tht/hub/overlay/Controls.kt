@@ -51,6 +51,108 @@ class Controls(
             spacing = 14,
         )
         addView(scroll(second), Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 14 })
+        addView(windowRow, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 14 })
+    }
+
+    // ---- Kính theo phần trăm ----
+
+    /** Kính đang chọn: 0 lái, 1 phụ, 2 sau trái, 3 sau phải. Mặc định tất cả. */
+    private val selWindows = linkedSetOf(0, 1, 2, 3)
+    private var winPercent = 20
+    private val winChips = mutableMapOf<String, android.widget.TextView>()
+    private val winPos = Ui.text(c, "", 16f, p.sub)
+    private val winValue = Ui.text(c, "20%", 30f, p.text, bold = true).apply { gravity = Gravity.CENTER }
+    private val winBar = android.widget.SeekBar(c).apply {
+        max = 100; progress = winPercent
+        progressTintList = android.content.res.ColorStateList.valueOf(p.blue)
+        thumbTintList = android.content.res.ColorStateList.valueOf(p.blue)
+        setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar, v: Int, fromUser: Boolean) {
+                if (fromUser) { winPercent = (v / 5) * 5; winValue.text = "$winPercent%"; onTouch() }
+            }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar) = Unit
+            override fun onStopTrackingTouch(s: android.widget.SeekBar) = sendWindows()
+        })
+    }
+
+    private fun chip(key: String, label: String, w: Int, onClick: () -> Unit) =
+        Ui.text(c, label, 17f, p.text).apply {
+            gravity = Gravity.CENTER; layoutParams = Ui.lp(w, 52)
+            setOnClickListener { onTouch(); onClick() }
+        }.also { winChips[key] = it }
+
+    private fun paintChips() {
+        val all = selWindows.size == 4
+        for ((k, v) in winChips) {
+            val on = when {
+                k == "all" -> all
+                k.startsWith("w") -> !all && k.drop(1).toInt() in selWindows
+                k.startsWith("p") -> k.drop(1).toInt() == winPercent
+                else -> false
+            }
+            v.background = Ui.round(if (on) p.blue else p.card, 12f)
+            v.setTextColor(if (on) 0xFFFFFFFF.toInt() else p.text)
+        }
+    }
+
+    private fun sendWindows() {
+        if (selWindows.isEmpty()) { onStatus("Chọn ít nhất một kính", false); return }
+        onStatus("Đang gửi…", true)
+        ctl.setWindowPercent(selWindows.toList(), winPercent) { r -> onStatus(r.message, r.ok); refreshWindows() }
+        paintChips()
+    }
+
+    private fun refreshWindows() {
+        ctl.background({ ctl.windowPositions() }) { pos ->
+            val names = listOf("Lái", "Phụ", "Sau trái", "Sau phải")
+            winPos.text = if (pos == null || pos.all { it == null }) "Vị trí kính: chưa đọc được"
+            else "Vị trí kính: " + names.indices.joinToString(" · ") { "${names[it]} ${pos[it]?.let { v -> "$v%" } ?: "–"}" }
+        }
+    }
+
+    private val windowRow: View by lazy {
+        val targets = Ui.row(c,
+            chip("all", "Tất cả", 110) { selWindows.clear(); selWindows.addAll(listOf(0, 1, 2, 3)); paintChips() },
+            chip("w0", "Lái", 90) { toggleWin(0) },
+            chip("w1", "Phụ", 90) { toggleWin(1) },
+            chip("w2", "Sau trái", 110) { toggleWin(2) },
+            chip("w3", "Sau phải", 110) { toggleWin(3) },
+            spacing = 8)
+        val presets = Ui.row(c,
+            chip("p0", "Đóng", 90) { setWin(0) },
+            chip("p10", "10%", 76) { setWin(10) },
+            chip("p20", "20%", 76) { setWin(20) },
+            chip("p50", "50%", 76) { setWin(50) },
+            chip("p100", "Mở hết", 100) { setWin(100) },
+            spacing = 8)
+        val content = LinearLayout(c).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(LinearLayout(c).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(targets)
+                addView(Ui.gap(c, 24))
+                addView(presets)
+            }, Ui.lp(Ui.WRAP, Ui.WRAP))
+            addView(LinearLayout(c).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(winValue, Ui.lp(100, Ui.WRAP))
+                addView(winBar, Ui.lp(560, Ui.WRAP))
+                addView(winPos, Ui.lp(Ui.WRAP, Ui.WRAP).apply { leftMargin = 16 })
+            }, Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 10 })
+        }
+        paintChips()
+        scroll(Ui.block(c, p, "Hé kính theo phần trăm", content)).apply { visibility = View.GONE }
+    }
+
+    private fun toggleWin(i: Int) {
+        if (selWindows.size == 4) selWindows.clear()
+        if (!selWindows.add(i)) selWindows.remove(i)
+        paintChips()
+    }
+
+    private fun setWin(v: Int) {
+        winPercent = v; winBar.progress = v; winValue.text = "$v%"
+        sendWindows()
     }
 
     private fun scroll(v: View) = HorizontalScrollView(c).apply {
@@ -104,8 +206,14 @@ class Controls(
 
     private fun body() = Ui.row(
         c,
-        tile("winC", R.drawable.ic_windows, "Đóng kính") { ctl.setWindows(false, ::done) },
-        tile("winO", R.drawable.ic_window_vent, "Hé kính") { ctl.setWindows(true, ::done) },
+        tile("winC", R.drawable.ic_windows, "Đóng kính") { ctl.setWindowPercent(listOf(0, 1, 2, 3), 0, ::done) },
+        Ui.Tile(c, p, R.drawable.ic_window_vent, "Kính %") {
+            onTouch()
+            val show = windowRow.visibility != View.VISIBLE
+            windowRow.visibility = if (show) View.VISIBLE else View.GONE
+            tiles["winO"]?.setOn(show)
+            if (show) refreshWindows()
+        }.also { tiles["winO"] = it },
         tile("roofT", R.drawable.ic_roof_tilt, "Hé mui") {
             ctl.toggleFn(F.BCM_SUNROOF_TILT, F.ZONE_ALL, "Hé cửa sổ trời", EcarxController.Safety.BELOW_80, ::done)
         },
@@ -138,7 +246,8 @@ class Controls(
         }
         tiles["defF"]?.setOn(i?.defrostFront)
         tiles["defR"]?.setOn(i?.defrostRear)
-        for (k in listOf("winC", "winO", "roofT", "roofC")) tiles[k]?.setOn(false)
+        for (k in listOf("winC", "roofT", "roofC")) tiles[k]?.setOn(false)
+        tiles["winO"]?.setOn(windowRow.visibility == View.VISIBLE)
         tempText.text = i?.tempC?.let { String.format(Locale.US, "%.1f°", it) } ?: "--"
         val fan = i?.fanLevel?.takeIf { it > 0 }
         fanText.text = fan?.toString() ?: if (i?.autoOn == true) "A" else "--"

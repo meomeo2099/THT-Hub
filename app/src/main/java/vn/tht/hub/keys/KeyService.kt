@@ -131,7 +131,8 @@ class KeyService : AccessibilityService() {
                 ctl?.setValue(F.HVAC_CIRCULATION, F.ZONE_ALL, F.level(F.HVAC_CIRCULATION, next), "Lấy gió", done = done)
             }
             KeyAction.DEFROST_FRONT -> ctl?.toggleFn(F.HVAC_DEFROST_FRONT, F.ZONE_ALL, "Sấy kính trước", done = done)
-            KeyAction.WINDOWS_CLOSE -> ctl?.setWindows(false, done)
+            KeyAction.WINDOWS_CLOSE -> ctl?.setWindowPercent(listOf(0, 1, 2, 3), 0, done)
+            KeyAction.WINDOWS_CRACK -> ctl?.setWindowPercent(listOf(0, 1, 2, 3), 20, done)
         }
     }
 
