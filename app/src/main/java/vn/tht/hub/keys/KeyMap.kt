@@ -57,14 +57,16 @@ fun keyLabel(code: Int): String = when (code) {
     KeyEvent.KEYCODE_CALL -> "Nghe gọi"
     KeyEvent.KEYCODE_ENDCALL -> "Kết thúc gọi"
     KeyEvent.KEYCODE_VOICE_ASSIST, 298 -> "Giọng nói"
+    300 -> "Tắt tiếng (ECARX)"
+    304 -> "Trái (ECARX)"
     KeyEvent.KEYCODE_HOME -> "Home"
     KeyEvent.KEYCODE_BACK -> "Quay lại"
     else -> KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_").let { if (it.all(Char::isDigit)) "Mã $code" else it }
 } + " ($code)"
 
 object KeyMap {
-    /** 8 nút: 4 bên trái (L1–L4, trên xuống) và 4 bên phải (R1–R4). */
-    val IDS = listOf("L1", "L2", "L3", "L4", "R1", "R2", "R3", "R4")
+    /** Các nút thật trên vô lăng Coolray 2025, xem [WheelButton]. */
+    val IDS = WheelButton.values().map { it.name }
 
     private const val KEY = "wheel_keys"
     private fun sp(c: Context) = c.getSharedPreferences("tht_hub", Context.MODE_PRIVATE)
@@ -73,7 +75,8 @@ object KeyMap {
         val saved = runCatching { JSONArray(sp(c).getString(KEY, "[]")) }.getOrDefault(JSONArray())
         val byId = (0 until saved.length()).mapNotNull { saved.optJSONObject(it) }.associateBy { it.optString("id") }
         return IDS.map { id ->
-            val o = byId[id] ?: return@map KeySlot(id)
+            val known = WheelButton.valueOf(id).knownCode
+            val o = byId[id] ?: return@map KeySlot(id, code = known)
             KeySlot(
                 id, o.optInt("code", -1),
                 runCatching { KeyAction.valueOf(o.optString("press")) }.getOrDefault(KeyAction.PASS), o.optString("pressArg"),

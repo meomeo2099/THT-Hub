@@ -312,7 +312,7 @@ class MainActivity : Activity() {
 
     private fun wheel(): View {
         val slots = KeyMap.load(this)
-        var sel = slots.firstOrNull { it.learned }?.id ?: "L1"
+        var sel = slots.firstOrNull { it.active }?.id ?: vn.tht.hub.keys.WheelButton.LEFT.name
         val detail = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val live = Ui.text(this, "Bấm thử một nút trên vô lăng…", 17f, p.sub)
         val svc = Ui.text(this, "", 16f, p.sub)
@@ -344,15 +344,33 @@ class MainActivity : Activity() {
             }
         }
 
-        render = {
+        render = render@{
             wv.slots = slots.toList(); wv.selected = sel
             val s = slots.first { it.id == sel }
+            val wb = vn.tht.hub.keys.WheelButton.valueOf(s.id)
             detail.removeAllViews()
-            detail.addView(Ui.text(this, "Nút ${s.id}", 26f, p.text, bold = true))
-            detail.addView(Ui.text(this, "Mã phím: ${s.keyName}", 17f, p.sub), Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 6 })
+            detail.addView(LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(Ui.icon(this@MainActivity, wb.icon, 0xFFFFFFFF.toInt(), 48).apply {
+                    background = Ui.round(if (wb.reserved) 0xFF6B4FBF.toInt() else p.blue, 12f); setPadding(10, 10, 10, 10)
+                })
+                addView(LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(Ui.text(this@MainActivity, wb.label, 26f, p.text, bold = true))
+                    addView(Ui.text(this@MainActivity, if (wb.left) "Cụm nút trái" else "Cụm nút phải", 15f, p.sub),
+                        Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 4 })
+                }, Ui.lp(0, Ui.WRAP, 1f).apply { leftMargin = 16 })
+            }, Ui.lp(Ui.MATCH, Ui.WRAP))
+            if (wb.reserved) {
+                detail.addView(Ui.text(this, "Nút này dành cho THT Voice nên THT Hub không gán.", 18f, p.sub),
+                    Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 18 })
+                return@render
+            }
+            detail.addView(Ui.text(this, "Mã phím: ${s.keyName}" + if (s.learned && s.code == wb.knownCode) " · đã thấy trên xe" else "",
+                17f, p.sub), Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 14 })
             detail.addView(primary(if (s.learned) "Học lại mã phím" else "Học mã phím") {
                 KeyService.learning = true
-                live.text = "Bấm nút ${s.id} trên vô lăng ngay bây giờ…"; live.setTextColor(p.blue)
+                live.text = "Bấm nút «${wb.label}» trên vô lăng ngay bây giờ…"; live.setTextColor(p.blue)
                 KeyService.listener = { code ->
                     if (code != android.view.KeyEvent.KEYCODE_BACK && code != android.view.KeyEvent.KEYCODE_HOME) {
                         slots.forEach { o -> if (o.id != s.id && o.code == code) o.code = -1 }   // một mã chỉ thuộc một nút
