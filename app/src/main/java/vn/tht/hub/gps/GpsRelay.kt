@@ -17,8 +17,14 @@ class GpsRelay(private val context: Context) {
 
     private val assembler = NmeaAssembler()
     private val splitter = LineSplitter { line -> onLine(line) }
+    private val aiding = GpsAiding(context)
+    private val ubx = UbxParser { cls, id, payload, raw -> aiding.onUbx(cls, id, payload, raw) }
     /** Tạo mới mỗi lần bật (luồng USB không khởi động lại được sau khi dừng). */
     @Volatile private var usb: UsbGnss? = null
+    @Volatile private var isUblox = false
+    /** Thời điểm mở bộ thu và có vị trí đầu tiên (để hiện thời gian bắt vệ tinh). */
+    @Volatile private var openedAt = 0L
+    @Volatile var timeToFirstFixSec: Int? = null; private set
 
     @Volatile var running = false; private set
     @Volatile var lastFix: GnssFix? = null; private set
@@ -32,7 +38,10 @@ class GpsRelay(private val context: Context) {
         if (running) return
         running = true
         removeTestProviderNow()
-        usb = UsbGnss(context, { assembler.validSentences }) { b, n -> splitter.feed(b, n) }.also { it.start() }
+        usb = UsbGnss(context, { assembler.validSentences },
+            onBytes = { b, n -> splitter.feed(b, n); ubx.feed(b, n) },
+            onReady = { ublox -> onReceiverReady(ublox) },
+        ).also { it.start() }
         Log.i(TAG, "Bắt đầu chuyển GPS USB")
     }
 
@@ -58,6 +67,10 @@ class GpsRelay(private val context: Context) {
         val sent: Long,
         val error: String?,
         val bridgeOn: Boolean,
+        /** Kết quả mồi khởi động, vd "Đã mồi: vị trí cuối + giờ, quỹ đạo 9 vệ tinh". */
+        val aiding: String,
+        /** Số giây từ lúc mở bộ thu tới khi có vị trí (null = chưa có). */
+        val ttffSec: Int?,
     )
 
     fun snapshot(): Snapshot {
@@ -76,6 +89,8 @@ class GpsRelay(private val context: Context) {
             sent = sent,
             error = lastError,
             bridgeOn = bridgeEnabled(),
+            aiding = if (isUblox) aiding.lastSummary else "",
+            ttffSec = timeToFirstFixSec,
         )
     }
 
@@ -98,6 +113,21 @@ class GpsRelay(private val context: Context) {
         if (bridgeEnabled()) append("\nCảnh báo: Car GNSS Bridge đang bật, hai app sẽ tranh bộ thu USB")
     }
 
+    /** Bộ thu vừa sẵn sàng (luồng đọc): u-blox thì gửi dữ liệu mồi để bắt vệ tinh nhanh. */
+    private fun onReceiverReady(ublox: Boolean) {
+        isUblox = ublox
+        openedAt = SystemClock.elapsedRealtime()
+        timeToFirstFixSec = null
+        if (!ublox) return
+        val frames = aiding.startupFrames(System.currentTimeMillis())
+        val u = usb ?: return
+        for (f in frames) {
+            if (!u.write(f)) break
+            // u-blox 7 xử lý tin AID tuần tự; giãn nhẹ để không tràn bộ đệm vào
+            SystemClock.sleep(8)
+        }
+    }
+
     private fun bridgeEnabled(): Boolean = runCatching {
         val pm = context.packageManager
         pm.getApplicationInfo(BRIDGE_PKG, 0).enabled &&
@@ -110,6 +140,11 @@ class GpsRelay(private val context: Context) {
         val fix = assembler.feed(line, now) ?: return
         lastFix = fix
         lastFixAt = now
+        if (timeToFirstFixSec == null && openedAt != 0L) {
+            timeToFirstFixSec = ((now - openedAt) / 1000).toInt()
+            Log.i(TAG, "Có vị trí sau ${timeToFirstFixSec} giây")
+        }
+        if (isUblox) aiding.onFix(fix, now, System.currentTimeMillis()).forEach { usb?.write(it) }
 
         val speed = fix.speedMps ?: 0f
         val course = fix.courseDeg

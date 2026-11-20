@@ -734,7 +734,7 @@ class MainActivity : Activity() {
             addView(bars, Ui.lp(Ui.MATCH, 150))
         }, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 14 })
 
-        val info = Ui.text(this, "", 17f, p.text).apply { maxLines = 6; setLineSpacing(6f, 1f) }
+        val info = Ui.text(this, "", 17f, p.text).apply { maxLines = 7; setLineSpacing(6f, 1f) }
         val warn = Ui.text(this, "", 16f, p.red).apply { maxLines = 2 }
         val tg = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         toggle(tg, "Đọc GPS USB cho bản đồ", "Vị trí vào hệ thống như GPS thật (không cờ giả lập) để mũi tên Vietmap bám đường. Mọi app bản đồ đều dùng được.",
@@ -760,7 +760,7 @@ class MainActivity : Activity() {
                     speed.first.text = f?.let { "%.0f".format(Locale.US, (it.speedMps ?: 0f) * 3.6f) } ?: "—"
                     speed.second.text = "km/h"
                     head.first.text = s.bearing?.let { "%.0f°".format(Locale.US, it) } ?: "—"
-                    head.second.text = s.bearing?.let { compass(it) } ?: "chưa có (xe chưa chạy)"
+                    head.second.text = s.bearing?.let { compass(it) } ?: "chờ xe chạy"
                     val used = s.sky.count { it.used }
                     sats.first.text = if (s.sky.isEmpty()) (f?.satellites?.toString() ?: "—") else "$used/${s.sky.size}"
                     sats.second.text = if (s.sky.isEmpty()) "" else "dùng / thấy"
@@ -776,6 +776,8 @@ class MainActivity : Activity() {
                         if (f != null) append(String.format(Locale.US, "\nVị trí %.6f, %.6f%s",
                             f.lat, f.lon, f.altitudeM?.let { " · cao %.0f m".format(Locale.US, it) } ?: ""))
                         else if (s.device != null) append("\nĐang bắt vệ tinh… (ngoài trời mất 30 giây – vài phút)")
+                        if (s.aiding.isNotEmpty()) append("\n").append(s.aiding)
+                        s.ttffSec?.let { append("\nCó vị trí sau $it giây kể từ khi mở bộ thu") }
                         append("\nĐã gửi cho bản đồ: ${s.sent} điểm")
                     }
                     warn.text = listOfNotNull(

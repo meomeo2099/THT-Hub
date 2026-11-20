@@ -32,6 +32,8 @@ class UsbGnss(
     /** Đếm số câu NMEA hợp lệ đã nhận (để biết đúng là GPS và đúng tốc độ baud). */
     private val validCount: () -> Long,
     private val onBytes: (ByteArray, Int) -> Unit,
+    /** Gọi trên luồng đọc khi đã xác định xong cổng (u-blox = true). */
+    private val onReady: (isUblox: Boolean) -> Unit = {},
 ) {
     @Volatile var status: String = "Chưa bắt đầu"; private set
     @Volatile var deviceName: String? = null; private set
@@ -180,6 +182,7 @@ class UsbGnss(
             if (!cdc) sp.edit().putInt(key, found).apply()
             status = "Đang đọc ${label(dev)}" + if (cdc) "" else " · $found baud"
             Log.i(TAG, status)
+            try { onReady(dev.vendorId == VID_UBLOX) } catch (t: Throwable) { Log.w(TAG, "onReady lỗi", t) }
             while (alive(dev)) {
                 val n = p.read(buf, 1000)
                 if (n > 0) {
@@ -197,6 +200,12 @@ class UsbGnss(
     }
 
     private fun alive(dev: UsbDevice) = running && openKey == dev.deviceName
+
+    /** Ghi xuống bộ thu (lệnh UBX). An toàn từ luồng bất kỳ; lỗi thì trả false. */
+    fun write(bytes: ByteArray): Boolean {
+        val p = port ?: return false
+        return try { p.write(bytes, 1000); true } catch (t: Throwable) { Log.w(TAG, "Ghi xuống bộ thu lỗi: ${t.message}"); false }
+    }
 
     private fun close(why: String) {
         val p = port
