@@ -103,7 +103,7 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
         val now = SystemClock.uptimeMillis()
         val dt = if (lastFrame == 0L) 16f else (now - lastFrame).coerceIn(1, 100).toFloat()
         lastFrame = now
-        val k = 1f - exp(-dt / 220f)            // hằng số thời gian ~0,22 s: mượt mà vẫn bám kịp
+        val k = 1f - exp(-dt / 260f)            // ~0,26 s: bộ thu báo 5 lần/giây nên chuyển động liền mạch
         var moving = false
 
         val t = targetBearing

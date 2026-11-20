@@ -119,7 +119,8 @@ class GpsRelay(private val context: Context) {
         openedAt = SystemClock.elapsedRealtime()
         timeToFirstFixSec = null
         if (!ublox) return
-        val frames = aiding.startupFrames(System.currentTimeMillis())
+        // 5 lần/giây + mô hình ô tô trước, rồi mới mồi dữ liệu khởi động
+        val frames = listOf(Ubx.cfgNav5Automotive(), Ubx.cfgRate(200)) + aiding.startupFrames(System.currentTimeMillis())
         val u = usb ?: return
         for (f in frames) {
             if (!u.write(f)) break

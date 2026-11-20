@@ -156,8 +156,8 @@ class SkyTracker {
     }
 
     private fun gsa(f: List<String>, talker: String, nowMs: Long) {
-        // Mỗi epoch u-blox gửi một GSA cho mỗi hệ; gom lại trong 500 ms
-        if (nowMs - usedAt > 500) used.clear()
+        // Mỗi epoch u-blox gửi một GSA cho mỗi hệ; gom các GSA cách nhau dưới 100 ms (cùng một lần đo; 5 lần/giây thì các lần đo cách 200 ms)
+        if (nowMs - usedAt > 100) used.clear()
         usedAt = nowMs
         for (i in 3..14) {
             val prn = f.getOrNull(i)?.toIntOrNull() ?: continue

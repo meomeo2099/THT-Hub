@@ -70,4 +70,16 @@ class UbxTest {
         assertTrue(Ubx.hasData(Ubx.CLS_AID, Ubx.ID_AID_EPH, 104))
         assertFalse(Ubx.hasData(Ubx.CLS_AID, Ubx.ID_AID_EPH, 8))
     }
+
+    /** Lệnh 5 Hz quen thuộc của u-blox: B5 62 06 08 06 00 C8 00 01 00 01 00 DE 6A. */
+    @Test fun cfgRate5Hz() {
+        assertEquals("B5 62 06 08 06 00 C8 00 01 00 01 00 DE 6A", hex(Ubx.cfgRate(200)))
+    }
+
+    @Test fun cfgNav5ChiDoiMoHinh() {
+        val f = Ubx.cfgNav5Automotive()
+        assertEquals(8 + 36, f.size)
+        assertEquals(0x01, f[6].toInt()); assertEquals(0x00, f[7].toInt())   // mask chỉ dynModel
+        assertEquals(4, f[8].toInt())                                       // automotive
+    }
 }

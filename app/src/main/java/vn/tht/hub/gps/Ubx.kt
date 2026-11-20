@@ -71,6 +71,25 @@ object Ubx {
         return frame(CLS_AID, ID_AID_INI, p.array())
     }
 
+    const val CLS_CFG = 0x06
+    const val ID_CFG_RATE = 0x08
+    const val ID_CFG_NAV5 = 0x24
+
+    /** CFG-RATE: chu kỳ đo [measRateMs] (200 = 5 lần/giây), theo giờ GPS. Không lưu vào bộ thu (mất khi rút điện). */
+    fun cfgRate(measRateMs: Int): ByteArray {
+        val p = ByteBuffer.allocate(6).order(ByteOrder.LITTLE_ENDIAN)
+        p.putShort(measRateMs.toShort()); p.putShort(1); p.putShort(1)
+        return frame(CLS_CFG, ID_CFG_RATE, p.array())
+    }
+
+    /** CFG-NAV5: chỉ đổi mô hình động lực (mask bit 0) sang ô tô (4) để vị trí/hướng ổn định khi lái. */
+    fun cfgNav5Automotive(): ByteArray {
+        val p = ByteBuffer.allocate(36).order(ByteOrder.LITTLE_ENDIAN)
+        p.putShort(0x0001)      // mask: chỉ dynModel
+        p.put(4)                // dynModel = automotive
+        return frame(CLS_CFG, ID_CFG_NAV5, p.array())
+    }
+
     const val FLAG_POS = 0x01
     const val FLAG_TIME = 0x02
     const val FLAG_LLA = 0x20

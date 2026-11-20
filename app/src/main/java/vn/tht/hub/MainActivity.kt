@@ -785,7 +785,7 @@ class MainActivity : Activity() {
                         if (s.bridgeOn) "Car GNSS Bridge đang bật: tắt nó đi để hai app không tranh bộ thu USB" else null,
                     ).joinToString("\n")
                 }
-                main.postDelayed(this, 1000)
+                main.postDelayed(this, 200)   // 5 lần/giây khớp nhịp bộ thu
             }
         }
         pageRefresh = { main.removeCallbacks(tick); main.post(tick) }
