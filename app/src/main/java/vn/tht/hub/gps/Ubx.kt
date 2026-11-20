@@ -97,13 +97,13 @@ object Ubx {
         frame(CLS_CFG, ID_CFG_MSG, byteArrayOf(0xF0.toByte(), nmeaId.toByte(), everyN.toByte()))
 
     /**
-     * Ở 5 lần/giây u-blox 7 có thể bỏ bớt câu ưu tiên thấp (GSV) khi tràn bộ đệm gửi: giữ RMC/GGA mỗi lần đo,
-     * GSA/GSV mỗi 5 lần (1 lần/giây), tắt GLL/VTG không dùng.
+     * Bộ câu NMEA dùng ở 1 lần/giây: RMC, GGA, GSA, GSV mỗi lần đo; tắt GLL/VTG không dùng cho nhẹ.
+     * (Đã thử 5 lần/giây trên xe 20/11/2026: u-blox 7 qua USB tràn bộ đệm, bỏ gần hết GSV, báo TXT liên tục.)
      */
-    fun nmeaFor5Hz(): List<ByteArray> = listOf(
+    fun nmeaFor1Hz(): List<ByteArray> = listOf(
         cfgNmeaRate(0x01, 0), cfgNmeaRate(0x05, 0),
-        cfgNmeaRate(0x02, 5), cfgNmeaRate(0x03, 5),
         cfgNmeaRate(0x00, 1), cfgNmeaRate(0x04, 1),
+        cfgNmeaRate(0x02, 1), cfgNmeaRate(0x03, 1),
     )
 
     const val FLAG_POS = 0x01

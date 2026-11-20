@@ -120,7 +120,9 @@ class GpsRelay(private val context: Context) {
         timeToFirstFixSec = null
         if (!ublox) return
         // 5 lần/giây + mô hình ô tô trước, rồi mới mồi dữ liệu khởi động
-        val frames = Ubx.nmeaFor5Hz() + listOf(Ubx.cfgNav5Automotive(), Ubx.cfgRate(200)) + aiding.startupFrames(System.currentTimeMillis())
+        // 1 lần/giây (gửi rõ ràng để huỷ 5 Hz nếu bộ thu còn giữ từ bản trước) + mô hình ô tô, rồi mồi khởi động
+        val frames = listOf(Ubx.cfgRate(1000)) + Ubx.nmeaFor1Hz() + listOf(Ubx.cfgNav5Automotive()) +
+            aiding.startupFrames(System.currentTimeMillis())
         val u = usb ?: return
         for (f in frames) {
             if (!u.write(f)) break
@@ -137,6 +139,8 @@ class GpsRelay(private val context: Context) {
         val type = if (line.length >= 6) line.substring(3, 6) else "?"
         val key = if (ok) type else "$type!"
         counts[key] = (counts[key] ?: 0) + 1
+        // Câu TXT là thông báo/cảnh báo của chính bộ thu (vd tràn bộ đệm): ghi nguyên văn, tối đa 3 câu mỗi 30 giây
+        if (ok && type == "TXT" && (counts[key] ?: 0) <= 3) Log.i(TAG, "Bộ thu báo: $line")
         if (countsSince == 0L) countsSince = now
         if (now - countsSince >= 30_000) {
             Log.i(TAG, "NMEA 30 giây: " + counts.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${it.value}" } +

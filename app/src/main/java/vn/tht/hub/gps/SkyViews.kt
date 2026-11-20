@@ -106,7 +106,7 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
         val now = SystemClock.uptimeMillis()
         val dt = if (lastFrame == 0L) 16f else (now - lastFrame).coerceIn(1, 100).toFloat()
         lastFrame = now
-        val k = 1f - exp(-dt / 260f)            // ~0,26 s: bộ thu báo 5 lần/giây nên chuyển động liền mạch
+        val k = 1f - exp(-dt / 450f)            // ~0,45 s: bộ thu báo 1 lần/giây, trượt gần hết khoảng giữa hai lần
         // Tia quét: một vòng 3,5 giây, chạy liên tục khi radar đang hiện
         sweepAngle = (sweepAngle + dt * 360f / 3500f) % 360f
         var moving = isShown
