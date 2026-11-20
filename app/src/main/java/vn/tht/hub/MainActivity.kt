@@ -48,6 +48,7 @@ class MainActivity : Activity() {
         OVERLAYS("Lớp nổi", R.drawable.ic_nav_layers),
         MUSIC("Nhạc và cuộc gọi", R.drawable.ic_nav_music),
         GPS("GPS", R.drawable.ic_gps),
+        SERVICE("Đi bảo dưỡng", R.drawable.ic_car_settings),
         DIAG("Chẩn đoán", R.drawable.ic_nav_info),
     }
 
@@ -143,7 +144,7 @@ class MainActivity : Activity() {
                 setOnClickListener { show(pg) }
             }
             item.setPadding(0, 0, 0, 0)
-            nav.addView(item, Ui.lp(Ui.MATCH, 62))
+            nav.addView(item, Ui.lp(Ui.MATCH, 56))
         }
     }
 
@@ -165,6 +166,7 @@ class MainActivity : Activity() {
             Page.OVERLAYS -> overlays()
             Page.MUSIC -> music()
             Page.GPS -> gpsPage()
+            Page.SERVICE -> servicePage()
             Page.DIAG -> diag()
         }
         content.addView(v)
@@ -524,6 +526,71 @@ class MainActivity : Activity() {
             }
         }
         return sv
+    }
+
+    // ---- Chế độ đi bảo dưỡng ----
+
+    private fun servicePage(): View {
+        val SM = vn.tht.hub.system.ServiceMode
+        val (sv, col) = column(900)
+        cap(col, "Chế độ đi bảo dưỡng", top = 0)
+        col.addView(Ui.text(this, "Ẩn các app cài ngoài trước khi giao xe cho đại lý. App không bị gỡ, dữ liệu giữ nguyên. " +
+            "THT Hub giấu biểu tượng và tắt lớp nổi.", 17f, p.sub).apply { maxLines = 3 }, Ui.lp(Ui.MATCH, Ui.WRAP))
+
+        cap(col, "Mở lại các app")
+        col.addView(choice("Tự mở lại sau", listOf(0 to "Không tự mở", 1 to "1 giờ", 2 to "2 giờ", 4 to "4 giờ",
+            8 to "8 giờ", 24 to "1 ngày", 72 to "3 ngày"), prefs.serviceModeHours, width = 860) { prefs.serviceModeHours = it })
+        val pinRow = choice("Mã PIN mở khoá", listOf(prefs.serviceModePin to (prefs.serviceModePin.ifEmpty { "Chưa đặt" })),
+            prefs.serviceModePin, width = 860) { }
+        pinRow.setOnClickListener { askPin { prefs.serviceModePin = it; show(page) } }
+        col.addView(pinRow, Ui.lp(860, 62).apply { topMargin = 10 })
+        col.addView(Ui.text(this, "Cách mở khoá: bấm 5 lần vào góc trên bên phải màn hình (ngay dưới đồng hồ) rồi nhập PIN, " +
+            "hoặc gõ *#*#4848#*#* trên bàn phím gọi của xe (nếu xe hỗ trợ), hoặc chờ hết giờ hẹn.", 15f, p.sub).apply { maxLines = 3 },
+            Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 10 })
+
+        cap(col, "App sẽ ẩn")
+        val apps = SM.candidates(this)
+        // THT Shell mặc định KHÔNG ẩn: còn nó thì quên PIN vẫn chạy được lệnh hiện lại app
+        val keep = setOf("com.tht.shell", "com.tht.shell.gateway")
+        val chosen = apps.map { it.first }.filter { it !in keep }.toMutableSet()
+        for ((pkg, label) in apps) {
+            toggle(col, label, pkg + if (pkg in keep) " · giữ lại để cứu khi quên PIN" else "", pkg !in keep) { on ->
+                if (on) chosen += pkg else chosen -= pkg
+            }
+        }
+        if (apps.isEmpty()) col.addView(Ui.text(this, "Không có app cài ngoài nào.", 17f, p.sub))
+
+        col.addView(primary("Bật chế độ đi bảo dưỡng") {
+            if (prefs.serviceModePin.length < 4) { askPin { prefs.serviceModePin = it; show(page) }; return@primary }
+            val hrs = prefs.serviceModeHours
+            AlertDialog.Builder(this, dialogTheme()).setTitle("Ẩn ${chosen.size} app?")
+                .setMessage("Biểu tượng THT Hub cũng sẽ ẩn. Mở lại bằng PIN ở góc trên phải" +
+                    (if (hrs > 0) " hoặc tự mở sau $hrs giờ." else ".") + "\nNhớ mã PIN: ${prefs.serviceModePin}")
+                .setPositiveButton("Ẩn") { _, _ ->
+                    val n = SM.enter(this, chosen.toList(), hrs)
+                    if (n < 0) {
+                        android.widget.Toast.makeText(this, "Không ẩn được app (thiếu quyền hệ thống) – chưa bật chế độ", android.widget.Toast.LENGTH_LONG).show()
+                    } else {
+                        android.widget.Toast.makeText(this, "Đã ẩn $n app", android.widget.Toast.LENGTH_LONG).show()
+                        moveTaskToBack(true)
+                    }
+                }.setNegativeButton("Huỷ", null).show()
+        }, Ui.lp(860, 60).apply { topMargin = 24 })
+        return sv
+    }
+
+    /** Hỏi mã PIN 4–8 số. */
+    private fun askPin(done: (String) -> Unit) {
+        val input = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = "4–8 chữ số"
+        }
+        AlertDialog.Builder(this, dialogTheme()).setTitle("Đặt mã PIN mở khoá").setView(input)
+            .setPositiveButton("Lưu") { _, _ ->
+                val v = input.text.toString()
+                if (v.length in 4..8 && v.all(Char::isDigit)) done(v)
+                else android.widget.Toast.makeText(this, "PIN phải 4–8 chữ số", android.widget.Toast.LENGTH_SHORT).show()
+            }.setNegativeButton("Huỷ", null).show()
     }
 
     // ---- Âm thanh ----

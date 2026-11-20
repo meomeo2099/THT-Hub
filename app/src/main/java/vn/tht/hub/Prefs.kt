@@ -31,6 +31,10 @@ class Prefs(context: Context) {
     // ---- Nhạc / cuộc gọi ----
     var callPauseMusic: Boolean get() = b("call_pause_music", true); set(v) = put("call_pause_music", v)
 
+    // ---- Chế độ đi bảo dưỡng ----
+    var serviceModePin: String get() = sp.getString("svc_pin", "") ?: ""; set(v) = put("svc_pin", v)
+    var serviceModeHours: Int get() = sp.getInt("svc_hours", 4); set(v) = put("svc_hours", v)
+
     // ---- Cửa và kính ----
     var doorDropEnabled: Boolean get() = b("door_drop", false); set(v) = put("door_drop", v)
     var doorDropPercent: Int get() = sp.getInt("door_drop_pct", 15); set(v) = put("door_drop_pct", v)

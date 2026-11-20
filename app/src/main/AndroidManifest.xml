@@ -8,6 +8,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CHANGE_COMPONENT_ENABLED_STATE" />
+    <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW" />
@@ -87,6 +89,15 @@
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/key_service" />
         </service>
+
+        <!-- Chế độ đi bảo dưỡng: hết giờ hẹn thì hiện lại app; mã *#*#4848#*#* trên bàn phím gọi -->
+        <receiver android:name=".system.ServiceMode$ExpireReceiver" android:exported="false" />
+        <receiver android:name=".system.ServiceMode$SecretCodeReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+                <data android:scheme="android_secret_code" android:host="4848" />
+            </intent-filter>
+        </receiver>
 
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>

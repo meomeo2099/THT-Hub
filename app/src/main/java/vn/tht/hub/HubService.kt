@@ -47,6 +47,7 @@ class HubService : Service() {
 
     private var quickPanel: QuickPanel? = null
     private var musicBar: MusicBar? = null
+    private var unlock: vn.tht.hub.overlay.UnlockCorner? = null
 
     /** Ai đó (lớp nổi, màn Cài đặt) muốn vẽ lại khi dữ liệu đổi. */
     private val listeners = LinkedHashSet<() -> Unit>()
@@ -65,6 +66,7 @@ class HubService : Service() {
         super.onCreate()
         instance = this
         prefs = Prefs(this)
+        vn.tht.hub.system.ServiceMode.checkExpired(this)
         startForeground(NOTIF_ID, buildNotification())
 
         val profile = (application as HubApp).profile
@@ -110,6 +112,13 @@ class HubService : Service() {
     fun applyOverlays() {
         Permissions.grantSelf(this)
         if (!Permissions.canOverlay(this)) { Log.w(TAG, "Chưa có quyền lớp nổi"); return }
+        // Chế độ bảo dưỡng: tắt mọi lớp nổi, chỉ còn vùng mở khoá ở góc trên phải
+        if (vn.tht.hub.system.ServiceMode.active(this)) {
+            quickPanel?.hide(); quickPanel = null; musicBar?.hide(); musicBar = null
+            if (unlock == null) unlock = vn.tht.hub.overlay.UnlockCorner(this).also { it.show() }
+            return
+        }
+        unlock?.hide(); unlock = null
         if (prefs.quickPanel) { if (quickPanel == null) quickPanel = QuickPanel(this).also { it.show() } }
         else { quickPanel?.hide(); quickPanel = null }
         if (prefs.musicBar) { if (musicBar == null) musicBar = MusicBar(this).also { it.show() } }
