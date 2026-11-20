@@ -73,6 +73,9 @@ class Prefs(context: Context) {
     var coldTemp: Float get() = sp.getFloat("cold_temp", 26f); set(v) = put("cold_temp", v)
     var coldDefrost: Boolean get() = b("cold_defrost", true); set(v) = put("cold_defrost", v)
 
+    /** Đọc GPS USB (u-blox) và đưa vào vị trí "gps" của hệ thống không cờ giả lập (cho Vietmap). */
+    var gpsRelay: Boolean get() = b("gps_relay", true); set(v) = put("gps_relay", v)
+
     /** Dung tích bình (lít) người dùng nhập; 0 = lấy từ xe. Dùng trong CarPropertySource. */
     var tankLiters: Int get() = sp.getInt("tank_l", 0); set(v) = put("tank_l", v)
 }

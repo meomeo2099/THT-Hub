@@ -54,6 +54,9 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    // Driver USB-serial cho bộ thu GPS: CDC-ACM (u-blox), Prolific PL2303, SiLabs CP210x, FTDI, CH340.
+    // Bản 3.9.0 (MIT): bản mới hơn đòi compileSdk 35.
+    implementation("com.github.mik3y:usb-serial-for-android:3.9.0")
     testImplementation("junit:junit:4.13.2")
 }
 

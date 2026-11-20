@@ -39,6 +39,7 @@ class HubService : Service() {
     lateinit var automation: Automation; private set
     lateinit var audio: vn.tht.hub.audio.AudioControl; private set
     lateinit var doors: vn.tht.hub.vehicle.DoorWindow; private set
+    lateinit var gps: vn.tht.hub.gps.GpsRelay; private set
 
     var vehicle: VehicleData? = null; private set
     var info: EcarxInfo? = null; private set
@@ -83,13 +84,16 @@ class HubService : Service() {
         audio = vn.tht.hub.audio.AudioControl(this).also { it.start() }
         doors = vn.tht.hub.vehicle.DoorWindow(this, ecarx, control) { vehicle?.speedKmh }.also { it.start() }
 
+        gps = vn.tht.hub.gps.GpsRelay(this)
+        applyGps()
+
         car.start(); ecarx.start(); media.start(); calls.start()
         main.post(pollInfo)
         applyOverlays()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_APPLY) applyOverlays()
+        if (intent?.action == ACTION_APPLY) { applyOverlays(); applyGps() }
         if (intent?.action == ACTION_TOGGLE_PANEL) quickPanel?.toggle()
         if (intent?.action == ACTION_RUN_START) automation.runStartScenario(force = true)
         if (intent?.action == ACTION_RESTYLE) { quickPanel?.hide(); quickPanel = null; musicBar?.hide(); musicBar = null; applyOverlays() }
@@ -112,8 +116,14 @@ class HubService : Service() {
         else { musicBar?.hide(); musicBar = null }
     }
 
+    /** Bật/tắt chuyển GPS USB theo Cài đặt. */
+    fun applyGps() {
+        if (prefs.gpsRelay) gps.start() else gps.stop()
+    }
+
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        runCatching { gps.stop() }
         quickPanel?.hide(); musicBar?.hide()
         runCatching { car.stop() }; runCatching { ecarx.stop() }
         runCatching { media.stop() }; runCatching { calls.stop() }; runCatching { audio.stop() }; runCatching { doors.stop() }

@@ -17,6 +17,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.Locale
+import vn.tht.hub.gps.SignalBarsView
+import vn.tht.hub.gps.SkyRadarView
 import vn.tht.hub.keys.KeyAction
 import vn.tht.hub.keys.KeyMap
 import vn.tht.hub.keys.KeyService
@@ -45,6 +47,7 @@ class MainActivity : Activity() {
         START("Khi nổ máy", R.drawable.ic_nav_start),
         OVERLAYS("Lớp nổi", R.drawable.ic_nav_layers),
         MUSIC("Nhạc và cuộc gọi", R.drawable.ic_nav_music),
+        GPS("GPS", R.drawable.ic_gps),
         DIAG("Chẩn đoán", R.drawable.ic_nav_info),
     }
 
@@ -151,7 +154,7 @@ class MainActivity : Activity() {
         pageRefresh = null
         KeyService.learning = false
         KeyService.listener = null
-        hero.visibility = if (pg == Page.PANEL || pg == Page.DIAG || pg == Page.WHEEL) View.GONE else View.VISIBLE
+        hero.visibility = if (pg == Page.PANEL || pg == Page.DIAG || pg == Page.WHEEL || pg == Page.GPS) View.GONE else View.VISIBLE
         val v = when (pg) {
             Page.OVERVIEW -> overview()
             Page.PANEL -> panel()
@@ -161,6 +164,7 @@ class MainActivity : Activity() {
             Page.START -> start()
             Page.OVERLAYS -> overlays()
             Page.MUSIC -> music()
+            Page.GPS -> gpsPage()
             Page.DIAG -> diag()
         }
         content.addView(v)
@@ -681,6 +685,118 @@ class MainActivity : Activity() {
         return sv
     }
 
+    // ---- GPS ----
+
+    private fun gpsPage(): View {
+        val root = LinearLayout(this).apply { setPadding(40, 30, 40, 30) }
+
+        // Trái: vòng radar
+        val radar = SkyRadarView(this, p)
+        val legend = Ui.text(this, "", 15f, p.sub).apply { maxLines = 2 }
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = Ui.round(p.card2, 20f)
+            setPadding(20, 16, 20, 16)
+            addView(Ui.text(this@MainActivity, "Bầu trời", 16f, p.sub))
+            addView(radar, Ui.lp(Ui.MATCH, 0, 1f))
+            addView(legend, Ui.lp(Ui.MATCH, Ui.WRAP))
+        }, Ui.lp(500, Ui.MATCH))
+
+        // Phải: số liệu, tín hiệu, trạng thái
+        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        fun stat(title: String): Pair<View, Pair<TextView, TextView>> {
+            val v = Ui.text(this, "—", 40f, p.text, bold = true)
+            val u = Ui.text(this, "", 16f, p.sub)
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = Ui.round(p.card2, 20f)
+                setPadding(20, 14, 16, 14)
+                addView(Ui.text(this@MainActivity, title, 16f, p.sub))
+                addView(v, Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 6 })
+                addView(u, Ui.lp(Ui.WRAP, Ui.WRAP).apply { topMargin = 4 })
+            }
+            return box to (v to u)
+        }
+        val (b1, speed) = stat("Tốc độ")
+        val (b2, head) = stat("Hướng")
+        val (b3, sats) = stat("Vệ tinh")
+        val (b4, acc) = stat("Độ chính xác")
+        right.addView(LinearLayout(this).apply {
+            listOf(b1, b2, b3, b4).forEachIndexed { i, b -> addView(b, Ui.lp(0, 128, 1f).apply { if (i > 0) leftMargin = 14 }) }
+        }, Ui.lp(Ui.MATCH, Ui.WRAP))
+
+        val bars = SignalBarsView(this, p)
+        right.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = Ui.round(p.card2, 20f)
+            setPadding(20, 14, 20, 10)
+            addView(Ui.text(this@MainActivity, "Tín hiệu (dB-Hz) · cột đặc = đang dùng", 16f, p.sub))
+            addView(bars, Ui.lp(Ui.MATCH, 150))
+        }, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 14 })
+
+        val info = Ui.text(this, "", 17f, p.text).apply { maxLines = 6; setLineSpacing(6f, 1f) }
+        val warn = Ui.text(this, "", 16f, p.red).apply { maxLines = 2 }
+        val tg = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        toggle(tg, "Đọc GPS USB cho bản đồ", "Vị trí vào hệ thống như GPS thật (không cờ giả lập) để mũi tên Vietmap bám đường. Mọi app bản đồ đều dùng được.",
+            prefs.gpsRelay) { prefs.gpsRelay = it; apply() }
+        right.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = Ui.round(p.card2, 20f)
+            setPadding(20, 16, 20, 14)
+            addView(tg)
+            addView(info)
+            addView(warn, Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 6 })
+        }, Ui.lp(Ui.MATCH, 0, 1f).apply { topMargin = 14 })
+        root.addView(right, Ui.lp(0, Ui.MATCH, 1f).apply { leftMargin = 20 })
+
+        val tick = object : Runnable {
+            override fun run() {
+                if (page != Page.GPS) return
+                val s = HubService.instance?.gps?.snapshot()
+                if (s == null) {
+                    info.text = "Dịch vụ nền chưa chạy"
+                } else {
+                    val f = s.fix
+                    speed.first.text = f?.let { "%.0f".format(Locale.US, (it.speedMps ?: 0f) * 3.6f) } ?: "—"
+                    speed.second.text = "km/h"
+                    head.first.text = s.bearing?.let { "%.0f°".format(Locale.US, it) } ?: "—"
+                    head.second.text = s.bearing?.let { compass(it) } ?: "chưa có (xe chưa chạy)"
+                    val used = s.sky.count { it.used }
+                    sats.first.text = if (s.sky.isEmpty()) (f?.satellites?.toString() ?: "—") else "$used/${s.sky.size}"
+                    sats.second.text = if (s.sky.isEmpty()) "" else "dùng / thấy"
+                    acc.first.text = s.accuracyM?.let { "±%.0f".format(Locale.US, it) } ?: "—"
+                    acc.second.text = if (s.accuracyM != null) "m" else ""
+                    radar.satellites = s.sky
+                    radar.bearing = s.bearing
+                    bars.satellites = s.sky
+                    val systems = s.sky.map { it.system }.distinct().joinToString(" · ") { sysName(it) }
+                    legend.text = if (s.sky.isEmpty()) "Chưa có dữ liệu vệ tinh" else "$systems · đặc = đang dùng · xanh mạnh, lục vừa, cam yếu"
+                    info.text = buildString {
+                        append(s.usbStatus)
+                        if (f != null) append(String.format(Locale.US, "\nVị trí %.6f, %.6f%s",
+                            f.lat, f.lon, f.altitudeM?.let { " · cao %.0f m".format(Locale.US, it) } ?: ""))
+                        else if (s.device != null) append("\nĐang bắt vệ tinh… (ngoài trời mất 30 giây – vài phút)")
+                        append("\nĐã gửi cho bản đồ: ${s.sent} điểm")
+                    }
+                    warn.text = listOfNotNull(
+                        s.error?.let { "Lỗi gửi vị trí: $it" },
+                        if (s.bridgeOn) "Car GNSS Bridge đang bật: tắt nó đi để hai app không tranh bộ thu USB" else null,
+                    ).joinToString("\n")
+                }
+                main.postDelayed(this, 1000)
+            }
+        }
+        pageRefresh = { main.removeCallbacks(tick); main.post(tick) }
+        return root
+    }
+
+    private fun compass(deg: Float): String {
+        val names = listOf("Bắc", "Đông Bắc", "Đông", "Đông Nam", "Nam", "Tây Nam", "Tây", "Tây Bắc")
+        return names[(((deg + 22.5f) % 360f) / 45f).toInt().coerceIn(0, 7)]
+    }
+
+    private fun sysName(c: Char) = when (c) { 'P' -> "GPS"; 'L' -> "GLONASS"; 'A' -> "Galileo"; 'B' -> "BeiDou"; 'Q' -> "QZSS"; else -> "$c" }
+
     // ---- Chẩn đoán ----
 
     private fun diag(): View {
@@ -703,6 +819,7 @@ class MainActivity : Activity() {
                 appendLine("Đọc thông báo (nhạc): " + if (Permissions.notificationListenerEnabled(this@MainActivity)) "có" else "CHƯA")
                 appendLine("Dịch vụ nền: " + if (hub != null) "đang chạy" else "chưa chạy")
                 appendLine("ECARX: " + (hub?.ecarx?.status ?: "-"))
+                appendLine("GPS USB: " + (hub?.gps?.statusText()?.lines()?.joinToString(" · ") ?: "-"))
                 if (v != null) appendLine(String.format(Locale.US, "Tốc độ %s · Số %s · Máy %s · ODO %s",
                     v.speedKmh?.let { "%.0f km/h".format(Locale.US, it) } ?: "-", v.gearText,
                     when (v.engineOn) { true -> "nổ"; false -> "tắt"; null -> "-" },
