@@ -82,4 +82,10 @@ class UbxTest {
         assertEquals(0x01, f[6].toInt()); assertEquals(0x00, f[7].toInt())   // mask chỉ dynModel
         assertEquals(4, f[8].toInt())                                       // automotive
     }
+
+    /** Lệnh tắt GLL quen thuộc của u-blox: B5 62 06 01 03 00 F0 01 00 FB 11. */
+    @Test fun cfgMsgTatGll() {
+        assertEquals("B5 62 06 01 03 00 F0 01 00 FB 11", hex(Ubx.cfgNmeaRate(0x01, 0)))
+        assertEquals(6, Ubx.nmeaFor5Hz().size)
+    }
 }

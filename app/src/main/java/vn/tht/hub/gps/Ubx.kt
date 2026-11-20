@@ -90,6 +90,22 @@ object Ubx {
         return frame(CLS_CFG, ID_CFG_NAV5, p.array())
     }
 
+    const val ID_CFG_MSG = 0x01
+
+    /** CFG-MSG (3 byte, cổng hiện tại): câu NMEA chuẩn class F0, [nmeaId] (00 GGA, 01 GLL, 02 GSA, 03 GSV, 04 RMC, 05 VTG) mỗi [everyN] lần đo; 0 = tắt. */
+    fun cfgNmeaRate(nmeaId: Int, everyN: Int): ByteArray =
+        frame(CLS_CFG, ID_CFG_MSG, byteArrayOf(0xF0.toByte(), nmeaId.toByte(), everyN.toByte()))
+
+    /**
+     * Ở 5 lần/giây u-blox 7 có thể bỏ bớt câu ưu tiên thấp (GSV) khi tràn bộ đệm gửi: giữ RMC/GGA mỗi lần đo,
+     * GSA/GSV mỗi 5 lần (1 lần/giây), tắt GLL/VTG không dùng.
+     */
+    fun nmeaFor5Hz(): List<ByteArray> = listOf(
+        cfgNmeaRate(0x01, 0), cfgNmeaRate(0x05, 0),
+        cfgNmeaRate(0x02, 5), cfgNmeaRate(0x03, 5),
+        cfgNmeaRate(0x00, 1), cfgNmeaRate(0x04, 1),
+    )
+
     const val FLAG_POS = 0x01
     const val FLAG_TIME = 0x02
     const val FLAG_LLA = 0x20

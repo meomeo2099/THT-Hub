@@ -120,12 +120,28 @@ class GpsRelay(private val context: Context) {
         timeToFirstFixSec = null
         if (!ublox) return
         // 5 lần/giây + mô hình ô tô trước, rồi mới mồi dữ liệu khởi động
-        val frames = listOf(Ubx.cfgNav5Automotive(), Ubx.cfgRate(200)) + aiding.startupFrames(System.currentTimeMillis())
+        val frames = Ubx.nmeaFor5Hz() + listOf(Ubx.cfgNav5Automotive(), Ubx.cfgRate(200)) + aiding.startupFrames(System.currentTimeMillis())
         val u = usb ?: return
         for (f in frames) {
             if (!u.write(f)) break
             // u-blox 7 xử lý tin AID tuần tự; giãn nhẹ để không tràn bộ đệm vào
             SystemClock.sleep(8)
+        }
+    }
+
+    // Đếm loại câu NMEA (kể cả sai checksum) và ghi nhật ký mỗi 30 giây để chẩn đoán trên xe
+    private val counts = HashMap<String, Int>()
+    private var countsSince = 0L
+    private fun countSentence(line: String, now: Long) {
+        val ok = Nmea.checksumOk(line)
+        val type = if (line.length >= 6) line.substring(3, 6) else "?"
+        val key = if (ok) type else "$type!"
+        counts[key] = (counts[key] ?: 0) + 1
+        if (countsSince == 0L) countsSince = now
+        if (now - countsSince >= 30_000) {
+            Log.i(TAG, "NMEA 30 giây: " + counts.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${it.value}" } +
+                " · vệ tinh trên radar=${assembler.sky.snapshot(now).size}")
+            counts.clear(); countsSince = now
         }
     }
 
@@ -138,6 +154,7 @@ class GpsRelay(private val context: Context) {
     private fun onLine(line: String) {
         if (!running) return
         val now = SystemClock.elapsedRealtime()
+        countSentence(line, now)
         val fix = assembler.feed(line, now) ?: return
         lastFix = fix
         lastFixAt = now
