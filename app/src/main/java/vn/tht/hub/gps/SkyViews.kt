@@ -60,17 +60,20 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
     private val m = Matrix()
     private var cx = 0f; private var cy = 0f; private var r = 0f
 
-    init { setLayerType(LAYER_TYPE_HARDWARE, null) }
+    /** Tia quét radar quay đều (độ, theo chiều kim đồng hồ từ Bắc), độc lập với hướng xe. */
+    private var sweepAngle = 0f
+    private val beam = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 2.5f; strokeCap = Paint.Cap.ROUND }
+    private val sweepColor = 0xFF2FD39A.toInt()   // xanh ngọc như radar Car GNSS Bridge
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
         cx = w / 2f; cy = h / 2f; r = min(w, h) / 2f - 34f
         if (r <= 0) return
         bg.shader = RadialGradient(cx, cy, r, intArrayOf(blend(p.blueSoft, p.card2, 0.55f), p.card2), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
-        // Quạt hướng: đậm ở mép trước, mờ dần về sau như tia quét radar
-        val a = Color.alpha(0x99000000.toInt())
+        // Tia quét: đậm ở mép trước, mờ dần về phía sau ~70°
+        val c = sweepColor and 0x00FFFFFF
         sweep.shader = SweepGradient(cx, cy,
-            intArrayOf(p.blue and 0x00FFFFFF, p.blue and 0x00FFFFFF, (p.blue and 0x00FFFFFF) or (a shl 24), p.blue and 0x00FFFFFF),
-            floatArrayOf(0f, 0.86f, 0.999f, 1f))
+            intArrayOf(c, c, c or (0x8C shl 24), c),
+            floatArrayOf(0f, 0.80f, 0.999f, 1f))
         dots.values.forEach { d -> place(d.sat)?.let { (x, y) -> d.x = x; d.y = y; d.tx = x; d.ty = y } }
     }
 
@@ -104,7 +107,9 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
         val dt = if (lastFrame == 0L) 16f else (now - lastFrame).coerceIn(1, 100).toFloat()
         lastFrame = now
         val k = 1f - exp(-dt / 260f)            // ~0,26 s: bộ thu báo 5 lần/giây nên chuyển động liền mạch
-        var moving = false
+        // Tia quét: một vòng 3,5 giây, chạy liên tục khi radar đang hiện
+        sweepAngle = (sweepAngle + dt * 360f / 3500f) % 360f
+        var moving = isShown
 
         val t = targetBearing
         val s = shownBearing
@@ -150,12 +155,24 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
         cv.drawText("30°", cx + 4f, cy - r * 2 / 3f - 4f, small)
         cv.drawText("60°", cx + 4f, cy - r / 3f - 4f, small)
 
-        // Quạt hướng xe (xoay mượt)
+        // Tia quét radar quay liên tục
+        val sa = sweepAngle - 90f                  // góc canvas: 0° = phía Đông
+        m.setRotate(sa, cx, cy)
+        sweep.shader.setLocalMatrix(m)
+        cv.drawArc(RectF(cx - r, cy - r, cx + r, cy + r), sa - 72f, 72f, true, sweep)
+        val sr = Math.toRadians(sweepAngle.toDouble())
+        beam.color = withAlpha(sweepColor, 0.9f)
+        cv.drawLine(cx, cy, (cx + r * sin(sr)).toFloat(), (cy - r * cos(sr)).toFloat(), beam)
+
+        // Hướng xe: vạch xanh trên vòng ngoài (mũi tên ở tâm cũng xoay theo)
         val b = shownBearing
         if (b != null) {
-            m.setRotate(b - 90f, cx, cy)
-            sweep.shader.setLocalMatrix(m)
-            cv.drawArc(RectF(cx - r, cy - r, cx + r, cy + r), b - 90f - 50f, 50f, true, sweep)
+            val br = Math.toRadians(b.toDouble())
+            beam.color = p.blue
+            beam.strokeWidth = 6f
+            cv.drawLine((cx + (r - 2f) * sin(br)).toFloat(), (cy - (r - 2f) * cos(br)).toFloat(),
+                (cx + (r - 20f) * sin(br)).toFloat(), (cy - (r - 20f) * cos(br)).toFloat(), beam)
+            beam.strokeWidth = 2.5f
         }
 
         // Hướng chính
@@ -172,6 +189,10 @@ class SkyRadarView(c: Context, private val p: Palette) : View(c) {
             val s = d.sat
             val color = colorOf(s, p)
             val a = d.alpha.coerceIn(0f, 1f)
+            // Tia quét vừa đi qua vệ tinh thì quầng sáng loé rồi tắt dần (như radar thật)
+            val behind = ((sweepAngle - (s.azimuth ?: 0) + 360f) % 360f)
+            val ping = if (behind < 90f) 1f - behind / 90f else 0f
+            if (ping > 0f) { fill.color = withAlpha(sweepColor, 0.45f * ping * a); cv.drawCircle(d.x, d.y, 22f + 8f * ping, fill) }
             if (s.used) {
                 fill.color = withAlpha(color, 0.22f * a); cv.drawCircle(d.x, d.y, 21f, fill)   // quầng sáng
                 fill.color = withAlpha(color, a); cv.drawCircle(d.x, d.y, 14f, fill)
