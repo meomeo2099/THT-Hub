@@ -110,6 +110,7 @@ object ServiceMode {
             pm.javaClass.getMethod("getApplicationHiddenSettingAsUser", String::class.java, android.os.UserHandle::class.java)
         }.getOrNull() ?: return emptyList()
         return pm.getInstalledApplications(PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.MATCH_DISABLED_COMPONENTS)
+            .filter { it.flags and ApplicationInfo.FLAG_INSTALLED != 0 }   // bỏ app đã gỡ (Android vẫn giữ thông tin)
             .filter { runCatching { get.invoke(pm, it.packageName, Process.myUserHandle()) == true }.getOrDefault(false) }
             .map { it.packageName to pm.getApplicationLabel(it).toString() }
     }
