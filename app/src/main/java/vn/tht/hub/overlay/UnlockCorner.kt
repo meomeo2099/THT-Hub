@@ -59,14 +59,15 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
         }
         // y = 0: hệ thống đặt lớp nổi ngay dưới vùng trạng thái 50 px → khung nằm sát dưới đồng hồ, sát mép phải
         // Vị trí chọn trong Cài đặt; bên trái chừa thanh OEM 160 px, dưới chừa tay kéo bảng nhanh
-        val lp = when (prefs.serviceModeCorner) {
-            1 -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.START).apply { x = 170; y = 0 }
-            2 -> Ui.overlayParams(100, 100, Gravity.BOTTOM or Gravity.END).apply { x = 6; y = 50 }
-            3 -> Ui.overlayParams(100, 100, Gravity.BOTTOM or Gravity.START).apply { x = 170; y = 50 }
-            4 -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { y = 0 }
-            else -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.END).apply { x = 6; y = 0 }
+        // Toạ độ tuyệt đối trên màn 1920×720: chừa thanh OEM trái (0–159) và hàng trạng thái trên (0–49)
+        val (x, y) = when (prefs.serviceModeCorner) {
+            1 -> 170 to 55              // góc trên trái
+            2 -> (1920 - 110) to 560    // góc dưới phải
+            3 -> 170 to 560             // góc dưới trái
+            4 -> (1920 + 160) / 2 - 50 to 55  // giữa phía trên (giữa vùng app)
+            else -> (1920 - 110) to 55  // góc trên phải
         }
-        runCatching { wm.addView(v, lp) }.onSuccess { corner = v }
+        if (Ui.addHigh(wm, v, Ui.systemParams(100, 100, x, y))) corner = v
         if (test) main.postDelayed({ hide() }, 30_000)
     }
 
@@ -121,8 +122,8 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
             setOnClickListener { closePad() }
             addView(box, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
         }
-        val lp = Ui.overlayParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER)
-        runCatching { wm.addView(root, lp) }.onSuccess { pad = root }
+        val lp = Ui.systemParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, 0, 0)
+        if (Ui.addHigh(wm, root, lp)) pad = root
         main.postDelayed({ closePad() }, 60_000)
     }
 

@@ -66,6 +66,26 @@ object Ui {
         PixelFormat.TRANSLUCENT,
     ).also { it.gravity = gravity }
 
+    /**
+     * Cửa sổ hệ thống cao (TYPE_SYSTEM_ERROR, cần INTERNAL_SYSTEM_WINDOW – có nhờ chữ ký platform): nằm TRÊN
+     * launcher/ngăn kéo ứng dụng ECARX (cửa sổ hệ thống loại 2045 che lớp nổi thường). Toạ độ tuyệt đối trên màn hình.
+     */
+    @Suppress("DEPRECATION")
+    fun systemParams(w: Int, h: Int, x: Int, y: Int) = WindowManager.LayoutParams(
+        w, h,
+        WindowManager.LayoutParams.TYPE_SYSTEM_ERROR,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+        PixelFormat.TRANSLUCENT,
+    ).also { it.gravity = Gravity.TOP or Gravity.LEFT; it.x = x; it.y = y }
+
+    /** Thêm cửa sổ hệ thống cao; xe không cho thì dùng lớp nổi thường cùng vị trí. */
+    fun addHigh(wm: WindowManager, v: View, lp: WindowManager.LayoutParams): Boolean {
+        if (runCatching { wm.addView(v, lp) }.isSuccess) return true
+        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        return runCatching { wm.addView(v, lp) }.isSuccess
+    }
+
     fun text(c: Context, s: String = "", size: Float = 20f, color: Int, bold: Boolean = false) = TextView(c).apply {
         text = s; textSize = size; setTextColor(color); maxLines = 1; ellipsize = TextUtils.TruncateAt.END
         includeFontPadding = false
