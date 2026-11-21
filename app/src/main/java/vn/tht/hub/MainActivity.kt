@@ -544,10 +544,12 @@ class MainActivity : Activity() {
             prefs.serviceModePin, width = 860) { }
         pinRow.setOnClickListener { askPin { prefs.serviceModePin = it; show(page) } }
         col.addView(pinRow, Ui.lp(860, 62).apply { topMargin = 10 })
-        col.addView(Ui.text(this, "Cách mở khoá: ở MÀN HÌNH CHÍNH, bấm nhanh 5 lần vào khung mờ ••• ở góc trên bên phải (sát dưới đồng hồ) rồi nhập PIN, " +
+        col.addView(Ui.text(this, "Cách mở khoá: ở MÀN HÌNH CHÍNH, bấm nhanh 5 lần vào góc trên bên phải (sát dưới đồng hồ, vùng vô hình) rồi nhập PIN, " +
             "hoặc gõ *#*#4848#*#* trên bàn phím gọi của xe (nếu xe hỗ trợ), hoặc chờ hết giờ hẹn.", 15f, p.sub).apply { maxLines = 3 },
             Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 10 })
 
+        toggle(col, "Hiện dấu ••• khi đang bảo dưỡng", "Tắt: vùng bấm vô hình, người khác không biết. Bật nếu sợ quên chỗ bấm.",
+            prefs.serviceModeShowMark) { prefs.serviceModeShowMark = it }
         col.addView(secondary("Thử vùng mở khoá (không ẩn app)") {
             if (prefs.serviceModePin.length < 4) { askPin { prefs.serviceModePin = it; show(page) }; return@secondary }
             HubService.start(this, HubService.ACTION_TEST_UNLOCK)

@@ -37,9 +37,11 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
         val v = TextView(hub).apply {
             gravity = Gravity.CENTER
             textSize = 13f
+            // Thật: vô hình hoàn toàn trừ khi bật "Hiện dấu •••"; thử: khung xanh có chữ
+            val mark = test || prefs.serviceModeShowMark
             setTextColor(if (test) 0xFFFFFFFF.toInt() else 0x66FFFFFF)
-            text = if (test) "Bấm 5 lần" else "•••"
-            background = android.graphics.drawable.GradientDrawable().apply {
+            text = if (test) "Bấm 5 lần" else if (mark) "•••" else ""
+            if (mark) background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 18f
                 setColor(if (test) 0x661F6BF2 else 0x14FFFFFF)
                 setStroke(if (test) 4 else 2, if (test) p.blue else 0x55FFFFFF)
