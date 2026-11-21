@@ -68,6 +68,7 @@ class HubService : Service() {
         instance = this
         prefs = Prefs(this)
         vn.tht.hub.system.ServiceMode.checkExpired(this)
+        vn.tht.hub.system.ServiceMode.ensureIcon(this)
         startForeground(NOTIF_ID, buildNotification())
 
         val profile = (application as HubApp).profile

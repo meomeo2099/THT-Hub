@@ -87,6 +87,16 @@ object ServiceMode {
         Log.i(TAG, "Tắt chế độ bảo dưỡng, đã hiện lại app")
     }
 
+    /** Không ở chế độ bảo dưỡng mà biểu tượng THT Hub vẫn tắt (mở khoá dở dang…) → bật lại. */
+    fun ensureIcon(c: Context) {
+        if (active(c)) return
+        val cn = ComponentName(c, "vn.tht.hub.MainActivity")
+        if (c.packageManager.getComponentEnabledSetting(cn) == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+            Log.w(TAG, "Biểu tượng THT Hub đang tắt ngoài chế độ bảo dưỡng – bật lại")
+            setLauncherIcon(c, true)
+        }
+    }
+
     /** Gọi lúc khởi động / mỗi lần dịch vụ chạy: quá giờ hẹn thì mở lại. */
     fun checkExpired(c: Context) {
         val u = until(c)
@@ -140,7 +150,7 @@ object ServiceMode {
         override fun onReceive(c: Context, i: Intent) {
             val ok = i.getStringExtra("pin") == Prefs(c).serviceModePin && Prefs(c).serviceModePin.isNotEmpty()
             Log.i(TAG, "Mở khoá qua ADB: ${if (ok) "đúng PIN" else "sai PIN"}")
-            if (ok && active(c)) exit(c)
+            if (ok) exit(c)   // luôn chạy: hiện lại app và bật lại biểu tượng, kể cả khi trạng thái bị lệch
             resultData = if (ok) "OK" else "SAI_PIN"
         }
     }
