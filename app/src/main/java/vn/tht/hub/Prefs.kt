@@ -35,6 +35,8 @@ class Prefs(context: Context) {
     var serviceModePin: String get() = sp.getString("svc_pin", "") ?: ""; set(v) = put("svc_pin", v)
     /** Hiện dấu ••• ở vùng mở khoá khi đang bảo dưỡng (mặc định tắt: vô hình để người khác không thấy). */
     var serviceModeShowMark: Boolean get() = b("svc_mark", false); set(v) = put("svc_mark", v)
+    /** Vị trí vùng mở khoá: 0 trên phải, 1 trên trái, 2 dưới phải, 3 dưới trái, 4 giữa trên. */
+    var serviceModeCorner: Int get() = sp.getInt("svc_corner", 0); set(v) = put("svc_corner", v)
     var serviceModeHours: Int get() = sp.getInt("svc_hours", 4); set(v) = put("svc_hours", v)
 
     // ---- Cửa và kính ----

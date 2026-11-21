@@ -57,7 +57,14 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
             true
         }
         // y = 0: hệ thống đặt lớp nổi ngay dưới vùng trạng thái 50 px → khung nằm sát dưới đồng hồ, sát mép phải
-        val lp = Ui.overlayParams(100, 100, Gravity.TOP or Gravity.END).apply { x = 6; y = 0 }
+        // Vị trí chọn trong Cài đặt; bên trái chừa thanh OEM 160 px, dưới chừa tay kéo bảng nhanh
+        val lp = when (prefs.serviceModeCorner) {
+            1 -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.START).apply { x = 170; y = 0 }
+            2 -> Ui.overlayParams(100, 100, Gravity.BOTTOM or Gravity.END).apply { x = 6; y = 50 }
+            3 -> Ui.overlayParams(100, 100, Gravity.BOTTOM or Gravity.START).apply { x = 170; y = 50 }
+            4 -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { y = 0 }
+            else -> Ui.overlayParams(100, 100, Gravity.TOP or Gravity.END).apply { x = 6; y = 0 }
+        }
         runCatching { wm.addView(v, lp) }.onSuccess { corner = v }
         if (test) main.postDelayed({ hide() }, 30_000)
     }
