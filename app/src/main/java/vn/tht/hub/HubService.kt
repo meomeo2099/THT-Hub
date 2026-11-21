@@ -93,6 +93,7 @@ class HubService : Service() {
 
         car.start(); ecarx.start(); media.start(); calls.start()
         main.post(pollInfo)
+        main.postDelayed(overlayWatchdog, 10_000)
         applyOverlays()
     }
 
@@ -114,6 +115,21 @@ class HubService : Service() {
     }
 
     /** Bật/tắt lớp nổi theo Cài đặt (gọi lại sau khi người dùng đổi). */
+    /** Mỗi 10 giây: lớp nổi nào được bật mà chưa thật sự hiện (bị từ chối lúc khởi động) thì tạo lại. */
+    private val overlayWatchdog = object : Runnable {
+        override fun run() {
+            val svc = vn.tht.hub.system.ServiceMode.active(this@HubService)
+            var stale = false
+            if (svc) { if (unlock?.attached != true) { unlock?.hide(); unlock = null; stale = true } }
+            else {
+                if (prefs.quickPanel && quickPanel?.attached != true) { quickPanel?.hide(); quickPanel = null; stale = true }
+                if (prefs.musicBar && musicBar?.attached != true) { musicBar?.hide(); musicBar = null; stale = true }
+            }
+            if (stale) { Log.i(TAG, "Lớp nổi chưa hiện – tạo lại"); applyOverlays() }
+            main.postDelayed(this, 10_000)
+        }
+    }
+
     fun applyOverlays() {
         Permissions.grantSelf(this)
         if (!Permissions.canOverlay(this)) { Log.w(TAG, "Chưa có quyền lớp nổi"); return }

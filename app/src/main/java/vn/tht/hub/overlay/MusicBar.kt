@@ -27,6 +27,7 @@ class MusicBar(private val hub: HubService) {
     private val prefs = Prefs(hub)
     private val main = Handler(Looper.getMainLooper())
     private var root: View? = null
+    val attached get() = root != null
     private val lp = Ui.overlayParams(W, H, Gravity.TOP or Gravity.START).apply {
         x = prefs.musicX; y = prefs.musicY
     }

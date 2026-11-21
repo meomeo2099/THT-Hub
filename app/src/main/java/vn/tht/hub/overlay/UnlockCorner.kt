@@ -26,6 +26,7 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
     private val prefs = Prefs(hub)
     private val main = Handler(Looper.getMainLooper())
     private var corner: View? = null
+    val attached get() = corner != null
     private var pad: View? = null
     private val taps = ArrayDeque<Long>()
 

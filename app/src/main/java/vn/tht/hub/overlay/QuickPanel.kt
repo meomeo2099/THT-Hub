@@ -30,6 +30,8 @@ class QuickPanel(private val hub: HubService) {
     private var panel: View? = null
     private var controls: Controls? = null
     val isOpen get() = panel != null
+    /** Tay kéo đã thật sự gắn vào màn hình (lúc đầu xe vừa bật, addView có thể bị từ chối). */
+    val attached get() = handle != null
 
     private val refresh: () -> Unit = { controls?.render() }
 
