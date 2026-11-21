@@ -67,7 +67,19 @@ class UnlockCorner(private val hub: HubService, private val test: Boolean = fals
             4 -> (1920 + 160) / 2 - 50 to 55  // giữa phía trên (giữa vùng app)
             else -> (1920 - 110) to 55  // góc trên phải
         }
-        if (Ui.addHigh(wm, v, Ui.systemParams(100, 100, x, y))) corner = v
+        val lp = Ui.systemParams(100, 100, x, y)
+        if (Ui.addHigh(wm, v, lp)) {
+            corner = v
+            // Trên Coolray toạ độ cửa sổ bị cộng thêm thanh OEM (đo thực tế x lệch +160): đo vị trí thật rồi dời về đúng chỗ
+            v.post {
+                val loc = IntArray(2); v.getLocationOnScreen(loc)
+                val dx = x - loc[0]; val dy = y - loc[1]
+                if (dx != 0 || dy != 0) {
+                    lp.x += dx; lp.y += dy
+                    runCatching { wm.updateViewLayout(v, lp) }
+                }
+            }
+        }
         if (test) main.postDelayed({ hide() }, 30_000)
     }
 
