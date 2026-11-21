@@ -555,6 +555,28 @@ class MainActivity : Activity() {
             moveTaskToBack(true)
         }.apply { layoutParams = Ui.lp(860, 60).apply { topMargin = 12 } })
 
+        val hiddenApps = SM.hiddenNow(this)
+        if (hiddenApps.isNotEmpty()) {
+            cap(col, "App đang bị ẩn")
+            for ((pkg, label) in hiddenApps) {
+                col.addView(LinearLayout(this).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = Ui.round(p.card2, 10f); setPadding(20, 8, 12, 8)
+                    addView(LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        addView(Ui.text(this@MainActivity, label, 19f, p.text))
+                        addView(Ui.text(this@MainActivity, pkg, 14f, p.sub))
+                    }, Ui.lp(0, Ui.WRAP, 1f))
+                    addView(primary("Hiện lại") {
+                        val ok = SM.unhide(this@MainActivity, pkg)
+                        android.widget.Toast.makeText(this@MainActivity, if (ok) "Đã hiện lại $label" else "Không hiện lại được $label",
+                            android.widget.Toast.LENGTH_SHORT).show()
+                        show(page)
+                    }, Ui.lp(Ui.WRAP, 52))
+                }, Ui.lp(860, Ui.WRAP).apply { bottomMargin = 8 })
+            }
+        }
+
         cap(col, "App sẽ ẩn")
         val apps = SM.candidates(this)
         // THT Shell mặc định KHÔNG ẩn: còn nó thì quên PIN vẫn chạy được lệnh hiện lại app

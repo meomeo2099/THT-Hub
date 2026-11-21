@@ -103,6 +103,20 @@ object ServiceMode {
         if (active(c) && u > 0 && System.currentTimeMillis() >= u) exit(c) else if (active(c) && u > 0) schedule(c, u)
     }
 
+    /** Mọi app đang bị ẩn trên xe (do chế độ này hay cách khác), kèm tên. */
+    fun hiddenNow(c: Context): List<Pair<String, String>> {
+        val pm = c.packageManager
+        val get = runCatching {
+            pm.javaClass.getMethod("getApplicationHiddenSettingAsUser", String::class.java, android.os.UserHandle::class.java)
+        }.getOrNull() ?: return emptyList()
+        return pm.getInstalledApplications(PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.MATCH_DISABLED_COMPONENTS)
+            .filter { runCatching { get.invoke(pm, it.packageName, Process.myUserHandle()) == true }.getOrDefault(false) }
+            .map { it.packageName to pm.getApplicationLabel(it).toString() }
+    }
+
+    /** Hiện lại một app bất kỳ đang bị ẩn. */
+    fun unhide(c: Context, pkg: String): Boolean = setHidden(c, pkg, false)
+
     private fun setHidden(c: Context, pkg: String, hide: Boolean): Boolean = runCatching {
         val pm = c.packageManager
         val user = Process.myUserHandle()
