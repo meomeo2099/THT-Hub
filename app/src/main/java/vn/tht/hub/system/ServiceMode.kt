@@ -132,6 +132,19 @@ object ServiceMode {
         override fun onReceive(c: Context, i: Intent) { if (active(c)) exit(c) }
     }
 
+    /**
+     * Mở khoá từ máy tính khi quên cách bấm: `adb shell am broadcast -a vn.tht.hub.ADB_UNLOCK -n vn.tht.hub/.system.ServiceMode\$AdbUnlockReceiver --es pin <PIN>`.
+     * Phải đúng PIN; shell của xe không có MANAGE_USERS nên không tự `pm unhide` được.
+     */
+    class AdbUnlockReceiver : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) {
+            val ok = i.getStringExtra("pin") == Prefs(c).serviceModePin && Prefs(c).serviceModePin.isNotEmpty()
+            Log.i(TAG, "Mở khoá qua ADB: ${if (ok) "đúng PIN" else "sai PIN"}")
+            if (ok && active(c)) exit(c)
+            resultData = if (ok) "OK" else "SAI_PIN"
+        }
+    }
+
     /** Mã bí mật trên bàn phím gọi: *#*#4848#*#* → mở lại (nếu app Điện thoại của xe hỗ trợ). */
     class SecretCodeReceiver : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {

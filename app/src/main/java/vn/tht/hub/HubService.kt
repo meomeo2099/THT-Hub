@@ -48,6 +48,7 @@ class HubService : Service() {
     private var quickPanel: QuickPanel? = null
     private var musicBar: MusicBar? = null
     private var unlock: vn.tht.hub.overlay.UnlockCorner? = null
+    private var testUnlock: vn.tht.hub.overlay.UnlockCorner? = null
 
     /** Ai đó (lớp nổi, màn Cài đặt) muốn vẽ lại khi dữ liệu đổi. */
     private val listeners = LinkedHashSet<() -> Unit>()
@@ -97,6 +98,9 @@ class HubService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_APPLY) { applyOverlays(); applyGps() }
         if (intent?.action == ACTION_TOGGLE_PANEL) quickPanel?.toggle()
+        if (intent?.action == ACTION_TEST_UNLOCK && Permissions.canOverlay(this)) {
+            testUnlock?.hide(); testUnlock = vn.tht.hub.overlay.UnlockCorner(this, test = true).also { it.show() }
+        }
         if (intent?.action == ACTION_RUN_START) automation.runStartScenario(force = true)
         if (intent?.action == ACTION_RESTYLE) { quickPanel?.hide(); quickPanel = null; musicBar?.hide(); musicBar = null; applyOverlays() }
         return START_STICKY
@@ -165,6 +169,7 @@ class HubService : Service() {
         const val ACTION_TOGGLE_PANEL = "vn.tht.hub.TOGGLE_PANEL"
         const val ACTION_RUN_START = "vn.tht.hub.RUN_START"
         const val ACTION_RESTYLE = "vn.tht.hub.RESTYLE"
+        const val ACTION_TEST_UNLOCK = "vn.tht.hub.TEST_UNLOCK"
 
         @Volatile var instance: HubService? = null; private set
 

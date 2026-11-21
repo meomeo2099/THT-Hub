@@ -544,9 +544,16 @@ class MainActivity : Activity() {
             prefs.serviceModePin, width = 860) { }
         pinRow.setOnClickListener { askPin { prefs.serviceModePin = it; show(page) } }
         col.addView(pinRow, Ui.lp(860, 62).apply { topMargin = 10 })
-        col.addView(Ui.text(this, "Cách mở khoá: bấm 5 lần vào góc trên bên phải màn hình (ngay dưới đồng hồ) rồi nhập PIN, " +
+        col.addView(Ui.text(this, "Cách mở khoá: ở MÀN HÌNH CHÍNH, bấm nhanh 5 lần vào khung mờ ••• ở góc trên bên phải (sát dưới đồng hồ) rồi nhập PIN, " +
             "hoặc gõ *#*#4848#*#* trên bàn phím gọi của xe (nếu xe hỗ trợ), hoặc chờ hết giờ hẹn.", 15f, p.sub).apply { maxLines = 3 },
             Ui.lp(Ui.MATCH, Ui.WRAP).apply { topMargin = 10 })
+
+        col.addView(secondary("Thử vùng mở khoá (không ẩn app)") {
+            if (prefs.serviceModePin.length < 4) { askPin { prefs.serviceModePin = it; show(page) }; return@secondary }
+            HubService.start(this, HubService.ACTION_TEST_UNLOCK)
+            android.widget.Toast.makeText(this, "Về màn hình chính, bấm 5 lần vào khung xanh ở góc trên phải", android.widget.Toast.LENGTH_LONG).show()
+            moveTaskToBack(true)
+        }.apply { layoutParams = Ui.lp(860, 60).apply { topMargin = 12 } })
 
         cap(col, "App sẽ ẩn")
         val apps = SM.candidates(this)

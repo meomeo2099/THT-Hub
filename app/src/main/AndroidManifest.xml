@@ -92,6 +92,10 @@
 
         <!-- Chế độ đi bảo dưỡng: hết giờ hẹn thì hiện lại app; mã *#*#4848#*#* trên bàn phím gọi -->
         <receiver android:name=".system.ServiceMode$ExpireReceiver" android:exported="false" />
+        <!-- Mở khoá từ máy tính bằng PIN (xem ServiceMode.AdbUnlockReceiver) -->
+        <receiver android:name=".system.ServiceMode$AdbUnlockReceiver" android:exported="true">
+            <intent-filter><action android:name="vn.tht.hub.ADB_UNLOCK" /></intent-filter>
+        </receiver>
         <receiver android:name=".system.ServiceMode$SecretCodeReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SECRET_CODE" />

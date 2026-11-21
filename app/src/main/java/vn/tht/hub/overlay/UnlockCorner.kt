@@ -21,7 +21,7 @@ import vn.tht.hub.system.ServiceMode
  * Vùng mở khoá chế độ bảo dưỡng: ô trong suốt 90×90 ở góc trên phải (dưới vùng trạng thái 50 px của xe),
  * bấm 5 lần trong 4 giây → bàn phím PIN. Đúng PIN thì hiện lại các app đã ẩn.
  */
-class UnlockCorner(private val hub: HubService) {
+class UnlockCorner(private val hub: HubService, private val test: Boolean = false) {
     private val wm = hub.getSystemService(WindowManager::class.java)
     private val prefs = Prefs(hub)
     private val main = Handler(Looper.getMainLooper())
@@ -32,7 +32,19 @@ class UnlockCorner(private val hub: HubService) {
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         if (corner != null) return
-        val v = View(hub)
+        val p = Palette.of(hub)
+        // Khung viền mờ để thấy chỗ bấm; chế độ thử thì rõ hơn và có chữ hướng dẫn
+        val v = TextView(hub).apply {
+            gravity = Gravity.CENTER
+            textSize = 13f
+            setTextColor(if (test) 0xFFFFFFFF.toInt() else 0x66FFFFFF)
+            text = if (test) "Bấm 5 lần" else "•••"
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 18f
+                setColor(if (test) 0x661F6BF2 else 0x14FFFFFF)
+                setStroke(if (test) 4 else 2, if (test) p.blue else 0x55FFFFFF)
+            }
+        }
         v.setOnTouchListener { _, e ->
             if (e.action == MotionEvent.ACTION_DOWN) {
                 val now = SystemClock.uptimeMillis()
@@ -42,8 +54,10 @@ class UnlockCorner(private val hub: HubService) {
             }
             true
         }
-        val lp = Ui.overlayParams(90, 90, Gravity.TOP or Gravity.END).apply { y = 56 }
+        // y = 0: hệ thống đặt lớp nổi ngay dưới vùng trạng thái 50 px → khung nằm sát dưới đồng hồ, sát mép phải
+        val lp = Ui.overlayParams(100, 100, Gravity.TOP or Gravity.END).apply { x = 6; y = 0 }
         runCatching { wm.addView(v, lp) }.onSuccess { corner = v }
+        if (test) main.postDelayed({ hide() }, 30_000)
     }
 
     fun hide() {
@@ -70,7 +84,10 @@ class UnlockCorner(private val hub: HubService) {
                     when (k) {
                         "Xoá" -> entered = entered.dropLast(1)
                         "OK" -> if (entered == prefs.serviceModePin) {
-                            closePad(); ServiceMode.exit(hub); return@setOnClickListener
+                            closePad()
+                            if (test) android.widget.Toast.makeText(hub, "Đúng mã PIN – vùng mở khoá hoạt động", android.widget.Toast.LENGTH_LONG).show()
+                            else ServiceMode.exit(hub)
+                            return@setOnClickListener
                         } else { entered = ""; msg.text = "Sai mã"; msg.setTextColor(p.red) }
                         else -> if (entered.length < 8) entered += k
                     }
